@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MarketWatch Live</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Montserrat:wght@400;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <header class="top-bar">
+    <div class="logo">MarketWatch Live</div>
+    <nav class="main-nav">
+      <a href="#" class="nav-link active" data-section="home">Accueil</a>
+      <a href="#" class="nav-link" data-section="stocks">Bourse</a>
+      <a href="#" class="nav-link" data-section="crypto">Crypto</a>
+      <a href="#" class="nav-link" data-section="news">Actualité internationale</a>
+    </nav>
+    <div class="user-actions">
+      <input type="text" placeholder="Rechercher..." class="search-bar" />
+      <button class="auth-btn">Connexion</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <h3>Indices du marché 📈</h3>
+        <ul id="indices-list">
+          <li>Chargement...</li>
+        </ul>
+      </div>
+      <div class="sidebar-section">
+        <h3>Recommandations 🔧</h3>
+        <ul id="recommendations">
+          <li>Chargement...</li>
+        </ul>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <section id="home" class="card content-section">
+        <h2>Bienvenue sur MarketWatch Live</h2>
+        <p>Utilisez les onglets pour naviguer entre les informations boursières, crypto et actualités financières internationales.</p>
+      </section>
+
+      <section id="stocks" class="watchlist card content-section hidden">
+        <h2>Cours des Actions 📉</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Prix</th>
+              <th>24h %</th>
+              <th>Cap.</th>
+              <th>Conseil</th>
+            </tr>
+          </thead>
+          <tbody id="stock-list">
+            <tr><td colspan="5">Chargement...</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="crypto" class="watchlist card content-section hidden">
+        <h2>Cours des Cryptomonnaies 💰</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Prix</th>
+              <th>24h %</th>
+              <th>Cap.</th>
+              <th>Conseil</th>
+            </tr>
+          </thead>
+          <tbody id="crypto-list">
+            <tr><td colspan="5">Chargement...</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="news" class="market-news card content-section hidden">
+        <h2>Actualité financière internationale 🌍</h2>
+        <div id="news-articles">
+          <p>Chargement des actualités...</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
