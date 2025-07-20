@@ -32,6 +32,7 @@ async function fetchNews() {
 
     const res = await fetch(proxyUrl);
     const data = await res.json();
+
     const parser = new DOMParser();
     const xml = parser.parseFromString(data.contents, 'text/xml');
     const items = xml.querySelectorAll('item');
@@ -59,7 +60,7 @@ async function fetchNews() {
 
     newsContainer.innerHTML = html;
   } catch (e) {
-    console.error(e);
+    console.error("Erreur actualités :", e);
     newsContainer.innerHTML = '<p>Erreur de chargement des actualités.</p>';
   }
 }
@@ -138,3 +139,4 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchData();
   setInterval(fetchData, 1000000);
 });
+console.log("fetchNews appelée !");
