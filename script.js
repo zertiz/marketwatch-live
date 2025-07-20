@@ -79,20 +79,6 @@ async function fetchNews() {
 
   newsContainer.innerHTML = '<p>Chargement...</p>';
 
-  try {
-    const res = await fetch('https://gnews.io/api/v4/top-headlines?topic=business&lang=fr&token=6416df57e2f682cdfc49f5e89a2a45cb');
-    const data = await res.json();
-
-    newsContainer.innerHTML = data.articles.map(article => `
-      <div class="news-item">
-        <h4>${article.title}</h4>
-        <p>${article.description || ''}</p>
-        <small><a href="${article.url}" target="_blank">Lire l'article</a> – ${new Date(article.publishedAt).toLocaleDateString()}</small>
-      </div>
-    `).join('');
-  } catch (e) {
-    newsContainer.innerHTML = '<p>Erreur de chargement des actualités.</p>';
-  }
 }
 
 function handleNavigation() {
@@ -116,5 +102,5 @@ function handleNavigation() {
 document.addEventListener('DOMContentLoaded', () => {
   handleNavigation();
   fetchData();
-  setInterval(fetchData, 10000);
+  setInterval(fetchData, 60000);
 });
