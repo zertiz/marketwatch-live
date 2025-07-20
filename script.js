@@ -29,7 +29,7 @@ async function fetchNews() {
   try {
     console.log("fetchNews appelée !");
     const proxyUrl = 'https://api.allorigins.win/get?url=' +
-      encodeURIComponent('https://www.lefigaro.fr/rss/figaro_economie.xml');
+      encodeURIComponent('https://feeds.a.dj.com/rss/RSSWorldNews.xml');
 
     const res = await fetch(proxyUrl);
     const data = await res.json();
