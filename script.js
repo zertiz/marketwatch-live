@@ -1,5 +1,5 @@
 async function fetchData() {
-  const cryptoUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum';
+  const cryptoUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum');
   const stockUrl = 'https://financialmodelingprep.com/api/v3/quote/AAPL,NVDA,MSFT,TSLA?apikey=GKTmxyXWbKpCSjj67xYW9xf7pPK86ALi';
 
   try {
@@ -33,6 +33,11 @@ async function fetchNews() {
   } catch (error) {
     console.error("Erreur lors du chargement des données :", error);
   }
+  if (!Array.isArray(stockData)) {
+  console.error("stockData non valide :", stockData);
+  return;
+}
+
 }
 
 function updateLists(stocks, cryptos) {
