@@ -8,20 +8,28 @@ async function fetchData() {
       fetch(stockUrl)
     ]);
 
-    const cryptoData = await cryptoRes.json();
-const stockData = await stockRes.json();
+async function fetchNews() {
+  const newsContainer = document.getElementById('news-articles');
+  newsContainer.innerHTML = '<p>Chargement...</p>';
 
-// ✅ Sécurité : on vérifie que ce sont bien des tableaux
-if (!Array.isArray(stockData) || !Array.isArray(cryptoData)) {
-  console.error("Les données reçues sont invalides :");
-  console.log("stockData:", stockData);
-  console.log("cryptoData:", cryptoData);
-  return; // On arrête la fonction pour éviter l’erreur
+  try {
+    const res = await fetch('http://api.mediastack.com/v1/news?access_key=7556d419825f0a6d2b57b3b5f294c8e1&categories=business&languages=fr&limit=5');
+    const data = await res.json();
+
+    if (!data.data || !Array.isArray(data.data)) throw new Error("Données invalides");
+
+    newsContainer.innerHTML = data.data.map(article => `
+      <div class="news-item">
+        <h4>${article.title}</h4>
+        <p>${article.description || ''}</p>
+        <small><a href="${article.url}" target="_blank">Lire l'article</a> – ${article.published_at.split('T')[0]}</small>
+      </div>
+    `).join('');
+  } catch (e) {
+    console.error(e);
+    newsContainer.innerHTML = '<p>Erreur de chargement des actualités.</p>';
+  }
 }
-
-updateLists(stockData, cryptoData);
-updateIndices(stockData);
-
   } catch (error) {
     console.error("Erreur lors du chargement des données :", error);
   }
