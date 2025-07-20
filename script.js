@@ -114,56 +114,6 @@ function updateIndices(data) {
   }).join('');
 }
 
-async function fetchNews() {
-  const newsContainer = document.getElementById('news-articles');
-  if (!newsContainer) return;
-
-  const rssApiKey = "qog47ej9ztwfwqjhysmudjt9d7jmotgnuh8sraks";
-const sources = [
-  {
-    name: "Boursorama",
-    url: `https://api.rss2json.com/v1/api.json?rss_url=https://www.boursorama.com/rss/actualites-economie/&api_key=${rssApiKey}`
-  },
-  {
-    name: "Les Échos",
-    url: `https://api.rss2json.com/v1/api.json?rss_url=https://www.lesechos.fr/rss/rss_economie.xml&api_key=${rssApiKey}`
-  }
-];
-
-
-  try {
-    let allArticles = [];
-
-    for (const source of sources) {
-      const res = await fetch(source.url);
-      const data = await res.json();
-
-      if (data.items && Array.isArray(data.items)) {
-        const articles = data.items.slice(0, 5).map(article => ({
-          ...article,
-          source: source.name
-        }));
-        allArticles = [...allArticles, ...articles];
-      }
-    }
-
-    newsContainer.innerHTML = allArticles.map(article => `
-      <div class="news-item">
-        <h4>${article.title}</h4>
-        <p>${article.description || ''}</p>
-        <small>
-          <a href="${article.link}" target="_blank">Lire l'article</a> – 
-          ${new Date(article.pubDate).toLocaleDateString()} 
-          <em>(${article.source})</em>
-        </small>
-      </div>
-    `).join('');
-  } catch (e) {
-    console.error(e);
-    newsContainer.innerHTML = '<p>Erreur de chargement des actualités.</p>';
-  }
-}
-
 function handleNavigation() {
   document.querySelectorAll('.nav-link').forEach(link => {
     link.addEventListener('click', (e) => {
@@ -185,5 +135,5 @@ function handleNavigation() {
 document.addEventListener('DOMContentLoaded', () => {
   handleNavigation();
   fetchData();
-  setInterval(fetchData, 600000);
+  setInterval(fetchData, 1000000);
 });
