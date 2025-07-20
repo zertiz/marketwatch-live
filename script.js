@@ -1,5 +1,5 @@
 async function fetchData() {
-  const cryptoUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum';
+  const cryptoUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum');
   const stockUrl = 'https://financialmodelingprep.com/api/v3/quote/AAPL,NVDA,MSFT,TSLA?apikey=GKTmxyXWbKpCSjj67xYW9xf7pPK86ALi';
 
   try {
@@ -8,28 +8,16 @@ async function fetchData() {
       fetch(stockUrl)
     ]);
 
-async function fetchNews() {
-  const newsContainer = document.getElementById('news-articles');
-  newsContainer.innerHTML = '<p>Chargement...</p>';
+    const cryptoData = await cryptoRes.json();
+    const stockData = await stockRes.json();
 
-  try {
-    const res = await fetch('http://api.mediastack.com/v1/news?access_key=7556d419825f0a6d2b57b3b5f294c8e1&categories=business&languages=fr&limit=5');
-    const data = await res.json();
+    if (!Array.isArray(stockData) || !Array.isArray(cryptoData)) {
+      console.error("Données non valides :", stockData, cryptoData);
+      return;
+    }
 
-    if (!data.data || !Array.isArray(data.data)) throw new Error("Données invalides");
-
-    newsContainer.innerHTML = data.data.map(article => `
-      <div class="news-item">
-        <h4>${article.title}</h4>
-        <p>${article.description || ''}</p>
-        <small><a href="${article.url}" target="_blank">Lire l'article</a> – ${article.published_at.split('T')[0]}</small>
-      </div>
-    `).join('');
-  } catch (e) {
-    console.error(e);
-    newsContainer.innerHTML = '<p>Erreur de chargement des actualités.</p>';
-  }
-}
+    updateLists(stockData, cryptoData);
+    updateIndices(stockData);
   } catch (error) {
     console.error("Erreur lors du chargement des données :", error);
   }
@@ -39,8 +27,6 @@ function updateLists(stocks, cryptos) {
   const stockList = document.getElementById('stock-list');
   const cryptoList = document.getElementById('crypto-list');
   const recList = document.getElementById('recommendations');
-
-  if (!stockList || !cryptoList || !recList) return;
 
   stockList.innerHTML = '';
   cryptoList.innerHTML = '';
@@ -81,8 +67,6 @@ function updateLists(stocks, cryptos) {
 
 function updateIndices(data) {
   const list = document.getElementById('indices-list');
-  if (!list) return;
-
   list.innerHTML = data.map(item => {
     const change = item.changesPercentage?.toFixed(2);
     const cls = change >= 0 ? 'gain' : 'loss';
@@ -92,22 +76,23 @@ function updateIndices(data) {
 
 async function fetchNews() {
   const newsContainer = document.getElementById('news-articles');
-  if (!newsContainer) return;
-
   newsContainer.innerHTML = '<p>Chargement...</p>';
 
   try {
-    const res = await fetch('https://gnews.io/api/v4/top-headlines?topic=business&lang=fr&token=6416df57e2f682cdfc49f5e89a2a45cb');
+    const res = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://www.boursorama.com/rss/actualites-economie/');
     const data = await res.json();
 
-    newsContainer.innerHTML = data.articles.map(article => `
+    if (!data.items || !Array.isArray(data.items)) throw new Error("Pas d'articles");
+
+    newsContainer.innerHTML = data.items.map(article => `
       <div class="news-item">
         <h4>${article.title}</h4>
         <p>${article.description || ''}</p>
-        <small><a href="${article.url}" target="_blank">Lire l'article</a> – ${new Date(article.publishedAt).toLocaleDateString()}</small>
+        <small><a href="${article.link}" target="_blank">Lire l'article</a> – ${new Date(article.pubDate).toLocaleDateString()}</small>
       </div>
     `).join('');
   } catch (e) {
+    console.error(e);
     newsContainer.innerHTML = '<p>Erreur de chargement des actualités.</p>';
   }
 }
@@ -133,5 +118,5 @@ function handleNavigation() {
 document.addEventListener('DOMContentLoaded', () => {
   handleNavigation();
   fetchData();
-  setInterval(fetchData, 10000);
+  setInterval(fetchData, 60000);
 });
