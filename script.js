@@ -32,10 +32,10 @@ async function fetchData() {
 
     let html = '';
     items.forEach((item, index) => {
-      if (index >= 5) return; // on affiche 5 articles max
-      const title = item.querySelector('title').textContent;
-      const link = item.querySelector('link').textContent;
-      const pubDate = item.querySelector('pubDate').textContent;
+      if (index >= 5) return; // on limite à 5 articles
+      const title = item.querySelector('title')?.textContent ?? '';
+      const link = item.querySelector('link')?.textContent ?? '';
+      const pubDate = item.querySelector('pubDate')?.textContent ?? '';
       const description = item.querySelector('description')?.textContent ?? '';
 
       html += `
@@ -44,7 +44,8 @@ async function fetchData() {
           <p>${description}</p>
           <small>
             <a href="${link}" target="_blank">Lire l'article</a> – 
-            ${new Date(pubDate).toLocaleDateString()} <em>(Les Échos)</em>
+            ${new Date(pubDate).toLocaleDateString()} 
+            <em>(Les Échos)</em>
           </small>
         </div>
       `;
