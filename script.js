@@ -24,44 +24,62 @@ async function fetchData() {
 
 async function fetchNews() {
   const newsContainer = document.getElementById('news-articles');
-  newsContainer.innerHTML = '<p>Chargement...</p>';
+  newsContainer.innerHTML = '<p>Chargement des actualités...</p>';
+
+  const feeds = [
+    {
+      url: 'https://feeds.a.dj.com/rss/RSSMarketsMain.xml',
+      label: 'Wall Street Journal'
+    },
+    {
+      url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html',
+      label: 'CNBC Markets'
+    },
+    {
+      url: 'https://www.marketwatch.com/rss/topstories',
+      label: 'MarketWatch'
+    }
+  ];
 
   try {
-    console.log("fetchNews appelée !");
-    const proxyUrl = 'https://api.allorigins.win/get?url=' +
-      encodeURIComponent('https://www.marketwatch.com/rss/topstories');
-
-    const res = await fetch(proxyUrl);
-    const data = await res.json();
-
-    const parser = new DOMParser();
-    const xml = parser.parseFromString(data.contents, 'text/xml');
-    const items = xml.querySelectorAll('item');
-
     let html = '';
-    items.forEach((item, index) => {
-      if (index >= 5) return;
-      const title = item.querySelector('title')?.textContent ?? '';
-      const link = item.querySelector('link')?.textContent ?? '';
-      const pubDate = item.querySelector('pubDate')?.textContent ?? '';
-      const description = item.querySelector('description')?.textContent ?? '';
 
-      html += `
-        <div class="news-item">
-          <h4>${title}</h4>
-          <p>${description}</p>
-          <small>
-            <a href="${link}" target="_blank">Lire l'article</a> – 
-            ${new Date(pubDate).toLocaleDateString()} 
-            <em>(Les Échos)</em>
-          </small>
-        </div>
-      `;
-    });
+    for (const feed of feeds) {
+      const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(feed.url);
+      const res = await fetch(proxyUrl);
+      const data = await res.json();
 
-    newsContainer.innerHTML = html || '<p>Aucun article trouvé.</p>';
-  } catch (e) {
-    console.error("Erreur actualités :", e);
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(data.contents, 'text/xml');
+      const items = xml.querySelectorAll('item');
+
+      html += `<h3 class="news-source">${feed.label}</h3>`;
+
+      items.forEach((item, index) => {
+        if (index >= 4) return;
+
+        const title = item.querySelector('title')?.textContent ?? '';
+        const link = item.querySelector('link')?.textContent ?? '';
+        const pubDate = new Date(item.querySelector('pubDate')?.textContent ?? '').toLocaleDateString();
+        const description = item.querySelector('description')?.textContent ?? '';
+        const imageMatch = description.match(/<img.*?src="(.*?)"/);
+        const imageUrl = imageMatch ? imageMatch[1] : 'https://via.placeholder.com/150';
+
+        html += `
+          <div class="news-card">
+            <img src="${imageUrl}" alt="Image" class="news-thumb">
+            <div class="news-content">
+              <h4><a href="${link}" target="_blank">${title}</a></h4>
+              <p class="news-date">${pubDate} • ${feed.label}</p>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    newsContainer.innerHTML = html || '<p>Aucune actualité trouvée.</p>';
+  } catch (error) {
+    console.error("Erreur actualités :", error);
     newsContainer.innerHTML = '<p>Erreur de chargement des actualités.</p>';
   }
 }
