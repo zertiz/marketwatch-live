@@ -1,22 +1,25 @@
 async function fetchData() {
   const cryptoUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum');
   const stockUrl = 'https://financialmodelingprep.com/api/v3/quote/AAPL,NVDA,MSFT,TSLA?apikey=GKTmxyXWbKpCSjj67xYW9xf7pPK86ALi';
+  const commoditiesUrl = 'https://financialmodelingprep.com/api/v3/quote/GCUSD,CLUSD,NGUSD?apikey=GKTmxyXWbKpCSjj67xYW9xf7pPK86ALi';
 
   try {
-    const [cryptoRes, stockRes] = await Promise.all([
+    const [cryptoRes, stockRes, commoditiesRes] = await Promise.all([
       fetch(cryptoUrl),
-      fetch(stockUrl)
+      fetch(stockUrl),
+      fetch(commoditiesUrl)
     ]);
 
     const cryptoData = await cryptoRes.json();
     const stockData = await stockRes.json();
+    const commoditiesData = await commoditiesRes.json();
 
     if (!Array.isArray(stockData) || !Array.isArray(cryptoData)) {
       throw new Error("Données de bourse ou crypto invalides");
     }
 
-    updateLists(stockData, cryptoData);
-    updateIndices(stockData);
+      updateLists(stockData, cryptoData, commoditiesData);
+    updateIndices([...stockData, ...commoditiesData]);
   } catch (error) {
     console.error("Erreur lors du chargement des données :", error);
   }
@@ -85,15 +88,17 @@ async function fetchNews() {
 }
 
 
-function updateLists(stocks, cryptos) {
+function updateLists(stocks, cryptos, commodities) {
   const stockList = document.getElementById('stock-list');
   const cryptoList = document.getElementById('crypto-list');
   const recList = document.getElementById('recommendations');
 
+  if (!stockList || !cryptoList || !recList) return;
+
   stockList.innerHTML = '';
   cryptoList.innerHTML = '';
 
-  const allAssets = [...stocks, ...cryptos];
+  const allAssets = [...stocks, ...cryptos, ...commodities];
 
   allAssets.forEach(asset => {
     const change = asset.price_change_percentage_24h ?? asset.changesPercentage;
@@ -113,10 +118,12 @@ function updateLists(stocks, cryptos) {
       </tr>
     `;
 
-    if (asset.symbol && ['AAPL', 'NVDA', 'MSFT', 'TSLA'].includes(asset.symbol)) {
-      stockList.innerHTML += row;
-    } else {
+    if (asset.symbol && ['BTC', 'ETH', 'XRP', 'SOL', 'ADA'].includes(asset.symbol?.toUpperCase())) {
       cryptoList.innerHTML += row;
+    } else if (['GCUSD', 'CLUSD', 'NGUSD'].includes(asset.symbol)) {
+      stockList.innerHTML += row; // Afficher les commodities avec les actions
+    } else {
+      stockList.innerHTML += row;
     }
   });
 
