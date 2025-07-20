@@ -29,7 +29,7 @@ async function fetchNews() {
   try {
     console.log("fetchNews appelée !");
     const proxyUrl = 'https://api.allorigins.win/get?url=' +
-      encodeURIComponent('https://www.zonebourse.com/rss/news.xml');
+      encodeURIComponent('https://www.marketwatch.com/rss/topstories');
 
     const res = await fetch(proxyUrl);
     const data = await res.json();
