@@ -143,5 +143,5 @@ function handleNavigation() {
 document.addEventListener('DOMContentLoaded', () => {
   handleNavigation();
   fetchData();
-  setInterval(fetchData, 60000);
+  setInterval(fetchData, 600000);
 });
