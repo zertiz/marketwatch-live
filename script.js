@@ -1,6 +1,6 @@
 async function fetchData() {
   const cryptoUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum';
-  const stockUrl = 'https://financialmodelingprep.com/api/v3/quote/AAPL,NVDA,MSFT,TSLA?apikey=8C6eqw9VAcDUFxs1UERgRgY64pNe9xYd';
+  const stockUrl = 'https://financialmodelingprep.com/api/v3/quote/AAPL,NVDA,MSFT,TSLA?apikey=GKTmxyXWbKpCSjj67xYW9xf7pPK86ALi';
 
   try {
     const [cryptoRes, stockRes] = await Promise.all([
@@ -9,10 +9,19 @@ async function fetchData() {
     ]);
 
     const cryptoData = await cryptoRes.json();
-    const stockData = await stockRes.json();
+const stockData = await stockRes.json();
 
-    updateLists(stockData, cryptoData);
-    updateIndices(stockData);
+// ✅ Sécurité : on vérifie que ce sont bien des tableaux
+if (!Array.isArray(stockData) || !Array.isArray(cryptoData)) {
+  console.error("Les données reçues sont invalides :");
+  console.log("stockData:", stockData);
+  console.log("cryptoData:", cryptoData);
+  return; // On arrête la fonction pour éviter l’erreur
+}
+
+updateLists(stockData, cryptoData);
+updateIndices(stockData);
+
   } catch (error) {
     console.error("Erreur lors du chargement des données :", error);
   }
@@ -80,7 +89,7 @@ async function fetchNews() {
   newsContainer.innerHTML = '<p>Chargement...</p>';
 
   try {
-    const res = await fetch('https://gnews.io/api/v4/top-headlines?topic=business&lang=fr&token=ddad1e3cdf72175391e47e28953646bd');
+    const res = await fetch('https://gnews.io/api/v4/top-headlines?topic=business&lang=fr&token=6416df57e2f682cdfc49f5e89a2a45cb');
     const data = await res.json();
 
     newsContainer.innerHTML = data.articles.map(article => `
