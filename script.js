@@ -1,5 +1,5 @@
 async function fetchData() {
-  const cryptoUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum';
+  const cryptoUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum');
   const stockUrl = 'https://financialmodelingprep.com/api/v3/quote/AAPL,NVDA,MSFT,TSLA?apikey=GKTmxyXWbKpCSjj67xYW9xf7pPK86ALi';
 
   try {
@@ -10,6 +10,11 @@ async function fetchData() {
 
     const cryptoData = await cryptoRes.json();
     const stockData = await stockRes.json();
+
+    if (!Array.isArray(stockData) || !Array.isArray(cryptoData)) {
+      console.error("Données non valides :", stockData, cryptoData);
+      return;
+    }
 
     updateLists(stockData, cryptoData);
     updateIndices(stockData);
@@ -22,8 +27,6 @@ function updateLists(stocks, cryptos) {
   const stockList = document.getElementById('stock-list');
   const cryptoList = document.getElementById('crypto-list');
   const recList = document.getElementById('recommendations');
-
-  if (!stockList || !cryptoList || !recList) return;
 
   stockList.innerHTML = '';
   cryptoList.innerHTML = '';
@@ -64,8 +67,6 @@ function updateLists(stocks, cryptos) {
 
 function updateIndices(data) {
   const list = document.getElementById('indices-list');
-  if (!list) return;
-
   list.innerHTML = data.map(item => {
     const change = item.changesPercentage?.toFixed(2);
     const cls = change >= 0 ? 'gain' : 'loss';
@@ -75,10 +76,50 @@ function updateIndices(data) {
 
 async function fetchNews() {
   const newsContainer = document.getElementById('news-articles');
-  if (!newsContainer) return;
-
   newsContainer.innerHTML = '<p>Chargement...</p>';
 
+  const sources = [
+    {
+      name: "Boursorama",
+      url: "https://api.rss2json.com/v1/api.json?rss_url=https://www.boursorama.com/rss/actualites-economie/"
+    },
+    {
+      name: "Les Échos",
+      url: "https://api.rss2json.com/v1/api.json?rss_url=https://www.lesechos.fr/rss/rss_economie.xml"
+    }
+  ];
+
+  try {
+    let allArticles = [];
+
+    for (const source of sources) {
+      const res = await fetch(source.url);
+      const data = await res.json();
+
+      if (data.items && Array.isArray(data.items)) {
+        const articles = data.items.slice(0, 5).map(article => ({
+          ...article,
+          source: source.name
+        }));
+        allArticles = [...allArticles, ...articles];
+      }
+    }
+
+    newsContainer.innerHTML = allArticles.map(article => `
+      <div class="news-item">
+        <h4>${article.title}</h4>
+        <p>${article.description || ''}</p>
+        <small>
+          <a href="${article.link}" target="_blank">Lire l'article</a> – 
+          ${new Date(article.pubDate).toLocaleDateString()} 
+          <em>(${article.source})</em>
+        </small>
+      </div>
+    `).join('');
+  } catch (e) {
+    console.error(e);
+    newsContainer.innerHTML = '<p>Erreur de chargement des actualités.</p>';
+  }
 }
 
 function handleNavigation() {
