@@ -1,5 +1,5 @@
 async function fetchData() {
-  const cryptoUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum');
+  const cryptoUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum';
   const stockUrl = 'https://financialmodelingprep.com/api/v3/quote/AAPL,NVDA,MSFT,TSLA?apikey=GKTmxyXWbKpCSjj67xYW9xf7pPK86ALi';
 
   try {
@@ -33,11 +33,6 @@ async function fetchNews() {
   } catch (error) {
     console.error("Erreur lors du chargement des données :", error);
   }
-  if (!Array.isArray(stockData)) {
-  console.error("stockData non valide :", stockData);
-  return;
-}
-
 }
 
 function updateLists(stocks, cryptos) {
@@ -95,6 +90,27 @@ function updateIndices(data) {
   }).join('');
 }
 
+async function fetchNews() {
+  const newsContainer = document.getElementById('news-articles');
+  if (!newsContainer) return;
+
+  newsContainer.innerHTML = '<p>Chargement...</p>';
+
+  try {
+    const res = await fetch('https://gnews.io/api/v4/top-headlines?topic=business&lang=fr&token=6416df57e2f682cdfc49f5e89a2a45cb');
+    const data = await res.json();
+
+    newsContainer.innerHTML = data.articles.map(article => `
+      <div class="news-item">
+        <h4>${article.title}</h4>
+        <p>${article.description || ''}</p>
+        <small><a href="${article.url}" target="_blank">Lire l'article</a> – ${new Date(article.publishedAt).toLocaleDateString()}</small>
+      </div>
+    `).join('');
+  } catch (e) {
+    newsContainer.innerHTML = '<p>Erreur de chargement des actualités.</p>';
+  }
+}
 
 function handleNavigation() {
   document.querySelectorAll('.nav-link').forEach(link => {
@@ -117,5 +133,5 @@ function handleNavigation() {
 document.addEventListener('DOMContentLoaded', () => {
   handleNavigation();
   fetchData();
-  setInterval(fetchData, 60000);
+  setInterval(fetchData, 10000);
 });
