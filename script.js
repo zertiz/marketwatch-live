@@ -27,6 +27,7 @@ async function fetchNews() {
   newsContainer.innerHTML = '<p>Chargement...</p>';
 
   try {
+    console.log("fetchNews appelée !");
     const proxyUrl = 'https://api.allorigins.win/get?url=' +
       encodeURIComponent('https://www.lesechos.fr/rss/rss_economie.xml');
 
@@ -58,12 +59,13 @@ async function fetchNews() {
       `;
     });
 
-    newsContainer.innerHTML = html;
+    newsContainer.innerHTML = html || '<p>Aucun article trouvé.</p>';
   } catch (e) {
     console.error("Erreur actualités :", e);
     newsContainer.innerHTML = '<p>Erreur de chargement des actualités.</p>';
   }
 }
+
 
 function updateLists(stocks, cryptos) {
   const stockList = document.getElementById('stock-list');
@@ -139,4 +141,3 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchData();
   setInterval(fetchData, 1000000);
 });
-console.log("fetchNews appelée !");
