@@ -1,5 +1,5 @@
 async function fetchData() {
-  const cryptoUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum';
+  const cryptoUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum');
   const stockUrl = 'https://financialmodelingprep.com/api/v3/quote/AAPL,NVDA,MSFT,TSLA?apikey=GKTmxyXWbKpCSjj67xYW9xf7pPK86ALi';
 
   try {
@@ -11,12 +11,18 @@ async function fetchData() {
     const cryptoData = await cryptoRes.json();
     const stockData = await stockRes.json();
 
+    if (!Array.isArray(stockData) || !Array.isArray(cryptoData)) {
+      throw new Error("Données de bourse ou crypto invalides");
+    }
+
     updateLists(stockData, cryptoData);
     updateIndices(stockData);
   } catch (error) {
     console.error("Erreur lors du chargement des données :", error);
   }
-  async function fetchNews() {
+}
+
+async function fetchNews() {
   const newsContainer = document.getElementById('news-articles');
   newsContainer.innerHTML = '<p>Chargement...</p>';
 
@@ -32,7 +38,7 @@ async function fetchData() {
 
     let html = '';
     items.forEach((item, index) => {
-      if (index >= 5) return; // on limite à 5 articles
+      if (index >= 5) return;
       const title = item.querySelector('title')?.textContent ?? '';
       const link = item.querySelector('link')?.textContent ?? '';
       const pubDate = item.querySelector('pubDate')?.textContent ?? '';
@@ -57,14 +63,11 @@ async function fetchData() {
     newsContainer.innerHTML = '<p>Erreur de chargement des actualités.</p>';
   }
 }
-}
 
 function updateLists(stocks, cryptos) {
   const stockList = document.getElementById('stock-list');
   const cryptoList = document.getElementById('crypto-list');
   const recList = document.getElementById('recommendations');
-
-  if (!stockList || !cryptoList || !recList) return;
 
   stockList.innerHTML = '';
   cryptoList.innerHTML = '';
@@ -105,8 +108,6 @@ function updateLists(stocks, cryptos) {
 
 function updateIndices(data) {
   const list = document.getElementById('indices-list');
-  if (!list) return;
-
   list.innerHTML = data.map(item => {
     const change = item.changesPercentage?.toFixed(2);
     const cls = change >= 0 ? 'gain' : 'loss';
