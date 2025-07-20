@@ -8,16 +8,28 @@ async function fetchData() {
       fetch(stockUrl)
     ]);
 
-    const cryptoData = await cryptoRes.json();
-    const stockData = await stockRes.json();
+async function fetchNews() {
+  const newsContainer = document.getElementById('news-articles');
+  newsContainer.innerHTML = '<p>Chargement...</p>';
 
-    if (!Array.isArray(stockData) || !Array.isArray(cryptoData)) {
-      console.error("Format des données invalide");
-      return;
-    }
+  try {
+    const res = await fetch('http://api.mediastack.com/v1/news?access_key=7556d419825f0a6d2b57b3b5f294c8e1&categories=business&languages=fr&limit=5');
+    const data = await res.json();
 
-    updateLists(stockData, cryptoData);
-    updateIndices(stockData);
+    if (!data.data || !Array.isArray(data.data)) throw new Error("Données invalides");
+
+    newsContainer.innerHTML = data.data.map(article => `
+      <div class="news-item">
+        <h4>${article.title}</h4>
+        <p>${article.description || ''}</p>
+        <small><a href="${article.url}" target="_blank">Lire l'article</a> – ${article.published_at.split('T')[0]}</small>
+      </div>
+    `).join('');
+  } catch (e) {
+    console.error(e);
+    newsContainer.innerHTML = '<p>Erreur de chargement des actualités.</p>';
+  }
+}
   } catch (error) {
     console.error("Erreur lors du chargement des données :", error);
   }
@@ -27,6 +39,8 @@ function updateLists(stocks, cryptos) {
   const stockList = document.getElementById('stock-list');
   const cryptoList = document.getElementById('crypto-list');
   const recList = document.getElementById('recommendations');
+
+  if (!stockList || !cryptoList || !recList) return;
 
   stockList.innerHTML = '';
   cryptoList.innerHTML = '';
@@ -76,28 +90,6 @@ function updateIndices(data) {
   }).join('');
 }
 
-async function fetchNews() {
-  const newsContainer = document.getElementById('news-articles');
-  newsContainer.innerHTML = '<p>Chargement...</p>';
-
-  try {
-    const res = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://www.boursorama.com/rss/actualites-economie/');
-    const data = await res.json();
-
-    if (!data.items || !Array.isArray(data.items)) throw new Error("Pas d'articles");
-
-    newsContainer.innerHTML = data.items.map(article => `
-      <div class="news-item">
-        <h4>${article.title}</h4>
-        <p>${article.description || ''}</p>
-        <small><a href="${article.link}" target="_blank">Lire l'article</a> – ${new Date(article.pubDate).toLocaleDateString()}</small>
-      </div>
-    `).join('');
-  } catch (e) {
-    console.error(e);
-    newsContainer.innerHTML = '<p>Erreur de chargement des actualités.</p>';
-  }
-}
 
 function handleNavigation() {
   document.querySelectorAll('.nav-link').forEach(link => {
@@ -120,5 +112,5 @@ function handleNavigation() {
 document.addEventListener('DOMContentLoaded', () => {
   handleNavigation();
   fetchData();
-  setInterval(fetchData, 60000); // toutes les 30 secondes
+  setInterval(fetchData, 60000);
 });
