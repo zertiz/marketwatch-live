@@ -77,17 +77,18 @@ async function fetchNews() {
   const newsContainer = document.getElementById('news-articles');
   if (!newsContainer) return;
 
-  newsContainer.innerHTML = '<p>Chargement...</p>';
-  const sources = [
-    {
-      name: "Boursorama",
-      url: "https://api.rss2json.com/v1/api.json?rss_url=https://www.boursorama.com/rss/actualites-economie/"
-    },
-    {
-      name: "Les Échos",
-      url: "https://api.rss2json.com/v1/api.json?rss_url=https://www.lesechos.fr/rss/rss_economie.xml"
-    }
-  ];
+  const rssApiKey = "qog47ej9ztwfwqjhysmudjt9d7jmotgnuh8sraks";
+const sources = [
+  {
+    name: "Boursorama",
+    url: `https://api.rss2json.com/v1/api.json?rss_url=https://www.boursorama.com/rss/actualites-economie/&api_key=${rssApiKey}`
+  },
+  {
+    name: "Les Échos",
+    url: `https://api.rss2json.com/v1/api.json?rss_url=https://www.lesechos.fr/rss/rss_economie.xml&api_key=${rssApiKey}`
+  }
+];
+
 
   try {
     let allArticles = [];
