@@ -163,3 +163,28 @@ th {
     transform: translateY(0);
   }
 }
+.rss-list {
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 2rem;
+}
+
+.rss-item {
+  margin-bottom: 0.75rem;
+}
+
+.rss-item a {
+  font-weight: 600;
+  color: #004080;
+  text-decoration: none;
+}
+
+.rss-item a:hover {
+  text-decoration: underline;
+}
+
+.rss-item small {
+  display: block;
+  color: #666;
+  font-size: 0.85rem;
+}
