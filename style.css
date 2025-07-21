@@ -78,7 +78,6 @@ body {
 
 .container {
   display: flex;
-  flex-direction: row; /* Par défaut en ligne */
   padding: 20px;
   gap: 20px;
 }
@@ -352,6 +351,24 @@ th {
   font-weight: bold;
 }
 
+/* Styles pour les boutons d'action (watchlist) */
+.watchlist-btn {
+  background: none;
+  border: none;
+  font-size: 1.2em; /* Taille de l'étoile */
+  cursor: pointer;
+  color: #b0b0b0; /* Couleur par défaut (gris) */
+  transition: color 0.2s;
+  padding: 0 5px;
+}
+
+.watchlist-btn.added {
+  color: #FFD700; /* Couleur or si ajouté */
+}
+
+.watchlist-btn:hover {
+  color: #61dafb; /* Bleu clair au survol */
+}
 
 /* Utilitaires */
 .hidden {
@@ -472,6 +489,12 @@ th {
     font-size: 12px; /* Encore plus petite taille de police */
   }
 
+  /* La colonne "Action" est masquée sur les petits écrans pour économiser de l'espace */
+  table thead th:nth-child(6),
+  table tbody td:nth-child(6) {
+    display: none;
+  }
+
   .chart-container {
     height: 250px; /* Hauteur encore plus réduite pour le graphique */
   }
@@ -498,7 +521,7 @@ th {
   /* Cache certaines colonnes pour les très petits écrans */
   table thead th:nth-child(4), /* Cache Cap. */
   table tbody td:nth-child(4),
-  table thead th:nth-child(5), /* Cache Conseil */
+  table thead th:nth-child(5), /* Cache Advice */
   table tbody td:nth-child(5) {
     display: none;
   }

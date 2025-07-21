@@ -1,4 +1,9 @@
-// Global variables to store all fetched data
+// Importations Firebase
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+// --- Variables Globales ---
 let allFetchedData = {
   stocks: [],
   cryptos: [],
@@ -6,21 +11,176 @@ let allFetchedData = {
   indices: [],
   commodities: []
 };
-
-// Variable to keep track of the last active section before a search
 let lastActiveSection = 'home';
+let myChart; // Pour stocker l'instance du graphique Chart.js
+let currentChartSymbol = '';
+let currentChartType = '';
+let currentChartName = '';
+
+// Firebase variables
+let app;
+let db;
+let auth;
+let userId = null; // L'ID utilisateur sera défini après l'authentification
+let userWatchlist = new Set(); // Stocke les symboles/IDs des éléments dans la watchlist de l'utilisateur
+
+// --- Initialisation Firebase ---
+// Ces variables sont fournies par l'environnement Canvas
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+async function initializeFirebase() {
+  try {
+    app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    auth = getAuth(app);
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        userId = user.uid;
+        console.log("Utilisateur connecté:", userId);
+        document.getElementById('authButton').textContent = `Logout (${userId.substring(0, 6)}...)`;
+        setupWatchlistListener(); // Écoute les changements de la watchlist
+      } else {
+        userId = null;
+        console.log("Utilisateur déconnecté.");
+        document.getElementById('authButton').textContent = 'Login';
+        document.getElementById('my-watchlist').innerHTML = '<li id="watchlist-loading">Login to view your watchlist.</li>';
+        userWatchlist.clear(); // Vide la watchlist en mémoire
+      }
+      // Re-fetch data pour s'assurer que les boutons de watchlist sont à jour
+      fetchData();
+    });
+
+    // Tente de se connecter avec le jeton fourni ou de manière anonyme
+    if (initialAuthToken) {
+      await signInWithCustomToken(auth, initialAuthToken);
+    } else {
+      await signInAnonymously(auth);
+    }
+  } catch (error) {
+    console.error("Erreur d'initialisation de Firebase ou d'authentification:", error);
+    document.getElementById('authButton').textContent = 'Login Error';
+    document.getElementById('watchlist-loading').textContent = 'Error loading watchlist. Please try again.';
+  }
+}
+
+// --- Fonctions de la Watchlist (Firestore) ---
+
+// Chemin de la collection de la watchlist pour l'utilisateur actuel
+function getWatchlistCollectionRef() {
+  if (!userId) {
+    console.error("User not authenticated for watchlist operations.");
+    return null;
+  }
+  return collection(db, `artifacts/${appId}/users/${userId}/watchlists`);
+}
+
+// Écoute les changements en temps réel de la watchlist
+function setupWatchlistListener() {
+  const watchlistRef = getWatchlistCollectionRef();
+  if (!watchlistRef) return;
+
+  onSnapshot(watchlistRef, (snapshot) => {
+    userWatchlist.clear();
+    const watchlistItems = [];
+    snapshot.forEach((doc) => {
+      const item = doc.data();
+      item.id = doc.id; // Stocke l'ID du document Firestore
+      userWatchlist.add(item.uniqueId); // Utilise uniqueId pour un suivi facile
+      watchlistItems.push(item);
+    });
+    updateWatchlistUI(watchlistItems);
+    // Rafraîchit les tableaux principaux pour mettre à jour l'état des boutons
+    updateLists(allFetchedData.stocks, allFetchedData.cryptos, allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities);
+  }, (error) => {
+    console.error("Erreur d'écoute de la watchlist:", error);
+    document.getElementById('my-watchlist').innerHTML = '<li>Error loading your watchlist.</li>';
+  });
+}
+
+// Ajoute un élément à la watchlist
+async function addToWatchlist(asset) {
+  if (!userId) {
+    alert("Please login to add items to your watchlist."); // Using alert for simplicity, consider custom modal
+    return;
+  }
+  const watchlistRef = getWatchlistCollectionRef();
+  if (!watchlistRef) return;
+
+  // Créer un ID unique pour l'actif (symbole + type)
+  const uniqueId = `${asset.symbol || asset.id}_${asset.type}`;
+  if (userWatchlist.has(uniqueId)) {
+    console.log(`${asset.name} is already in watchlist.`);
+    return;
+  }
+
+  try {
+    // Utiliser setDoc avec un ID spécifique pour éviter les doublons et faciliter la suppression
+    await setDoc(doc(watchlistRef, uniqueId), {
+      name: asset.name,
+      symbol: asset.symbol || asset.id, // Pour crypto, l'ID est le symbole
+      type: asset.type, // 'stock_fmp' ou 'crypto'
+      timestamp: new Date()
+    });
+    console.log(`${asset.name} added to watchlist.`);
+    userWatchlist.add(uniqueId); // Mettre à jour le Set en mémoire
+  } catch (error) {
+    console.error("Error adding to watchlist:", error);
+  }
+}
+
+// Supprime un élément de la watchlist
+async function removeFromWatchlist(uniqueId) {
+  if (!userId) {
+    console.error("User not authenticated to remove from watchlist.");
+    return;
+  }
+  const watchlistRef = getWatchlistCollectionRef();
+  if (!watchlistRef) return;
+
+  try {
+    await deleteDoc(doc(watchlistRef, uniqueId));
+    console.log(`Item ${uniqueId} removed from watchlist.`);
+    userWatchlist.delete(uniqueId); // Mettre à jour le Set en mémoire
+  } catch (error) {
+    console.error("Error removing from watchlist:", error);
+  }
+}
+
+// Met à jour l'UI de la watchlist dans la barre latérale
+function updateWatchlistUI(watchlistItems) {
+  const watchlistUl = document.getElementById('my-watchlist');
+  if (!watchlistUl) return;
+
+  if (watchlistItems.length === 0) {
+    watchlistUl.innerHTML = '<li>Your watchlist is empty. Add some assets!</li>';
+  } else {
+    watchlistUl.innerHTML = watchlistItems.map(item => {
+      const uniqueId = `${item.symbol}_${item.type}`; // Reconstruire uniqueId
+      return `
+        <li>
+          ${item.name}
+          <button class="watchlist-btn added" onclick="removeFromWatchlist('${uniqueId}')" title="Remove from Watchlist">⭐</button>
+        </li>
+      `;
+    }).join('');
+  }
+}
+
+// --- Fonctions de Récupération et Mise à Jour des Données (Existantes, avec modifications pour Watchlist) ---
 
 async function fetchData() {
   const cryptoUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana,cardano,ripple,dogecoin,tron,polkadot,polygon,chainlink';
   const stockUrl = 'https://financialmodelingprep.com/api/v3/quote/AAPL,NVDA,MSFT,TSLA,AMZN,META,GOOG,JPM,BAC,V?apikey=86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS';
   const forexUrl = 'https://financialmodelingprep.com/api/v3/quote/EURUSD,USDJPY,GBPUSD,AUDUSD,USDCAD,USDCHF,USDCNY,USDHKD,USDSEK,USDSGD?apikey=86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS';
-  // Corrected indices URL: encoding '^' to '%5E' to fix 404 error
   const indicesUrl = 'https://financialmodelingprep.com/api/v3/quote/%5EDJI,%5EIXIC,%5EGSPC,%5EFCHI,%5EGDAXI,%5EFTSE,%5EN225,%5EHSI,%5ESSMI,%5EBVSP?apikey=86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS';
   const commoditiesUrl = 'https://financialmodelingprep.com/api/v3/quote/GCUSD,SIUSD,CLUSD,NGUSD,HGUSD,ALIUSD,PAUSD,PLUSD,KCUSD,SBUSD?apikey=86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS';
 
   // Display loading messages for main tables
-  document.getElementById('stock-list').innerHTML = '<tr><td colspan="5">Loading stock data...</td></tr>';
-  document.getElementById('crypto-list').innerHTML = '<tr><td colspan="5">Loading crypto data...</td></tr>';
+  document.getElementById('stock-list').innerHTML = '<tr><td colspan="6">Loading stock data...</td></tr>';
+  document.getElementById('crypto-list').innerHTML = '<tr><td colspan="6">Loading crypto data...</td></tr>';
   document.getElementById('indices-list').innerHTML = '<li>Loading market indices...</li>';
   document.getElementById('recommendations').innerHTML = '<li>Loading recommendations...</li>';
 
@@ -46,8 +206,8 @@ async function fetchData() {
         }
         console.error(errorMessage);
         // Clear tables and show error
-        document.getElementById('stock-list').innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
-        document.getElementById('crypto-list').innerHTML = `<tr><td colspan="5" class="error-message">Loading crypto data...</td></tr>`; // Crypto might still load
+        document.getElementById('stock-list').innerHTML = `<tr><td colspan="6" class="error-message">${errorMessage}</td></tr>`;
+        document.getElementById('crypto-list').innerHTML = `<tr><td colspan="6" class="error-message">Loading crypto data...</td></tr>`; // Crypto might still load
         document.getElementById('indices-list').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
         document.getElementById('recommendations').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
         // Proceed with potentially empty data for other parts
@@ -108,8 +268,8 @@ async function fetchData() {
   } catch (error) {
     console.error("Error loading data:", error);
     const genericErrorMessage = "An unexpected error occurred while loading data.";
-    document.getElementById('stock-list').innerHTML = `<tr><td colspan="5" class="error-message">${genericErrorMessage}</td></tr>`;
-    document.getElementById('crypto-list').innerHTML = `<tr><td colspan="5" class="error-message">${genericErrorMessage}</td></tr>`;
+    document.getElementById('stock-list').innerHTML = `<tr><td colspan="6" class="error-message">${genericErrorMessage}</td></tr>`;
+    document.getElementById('crypto-list').innerHTML = `<tr><td colspan="6" class="error-message">${genericErrorMessage}</td></tr>`;
     document.getElementById('indices-list').innerHTML = `<li><span class="error-message">${genericErrorMessage}</span></li>`;
     document.getElementById('recommendations').innerHTML = `<li><span class="error-message">${genericErrorMessage}</span></li>`;
   }
@@ -215,7 +375,7 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
   ];
 
   if (allNonCryptoAssets.length === 0) {
-      stockListTableBody.innerHTML = '<tr><td colspan="5">No stock, forex, indices, or commodities data available.</td></tr>';
+      stockListTableBody.innerHTML = '<tr><td colspan="6">No stock, forex, indices, or commodities data available.</td></tr>';
   } else {
       allNonCryptoAssets.forEach(asset => {
         const change = asset.changesPercentage ?? 0;
@@ -234,15 +394,28 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
         const changeClass = isGain ? 'gain' : 'loss';
         const changeArrow = isGain ? '▲' : '▼'; // Arrow indicator
 
+        // Unique ID for watchlist tracking
+        const uniqueId = `${asset.symbol}_stock_fmp`;
+        const isAddedToWatchlist = userWatchlist.has(uniqueId);
+        const watchlistButtonClass = isAddedToWatchlist ? 'added' : '';
+        const watchlistButtonText = isAddedToWatchlist ? '⭐' : '☆'; // Filled star if added, empty if not
+
         // Add data-symbol and data-type attribute for click
         // Use asset.symbol for FMP, and a generic type like 'stock_fmp' to distinguish them
         const row = `
-          <tr onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')">
-            <td>${asset.name}</td>
-            <td>$${price.toLocaleString()}</td>
-            <td class="${changeClass}">${change.toFixed(2)}% ${changeArrow}</td>
-            <td>${cap ? '$' + (cap / 1e9).toFixed(1) + 'B' : 'N/A'}</td>
-            <td>${recommendation}</td>
+          <tr>
+            <td onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')">${asset.name}</td>
+            <td onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')">$${price.toLocaleString()}</td>
+            <td onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')" class="${changeClass}">${change.toFixed(2)}% ${changeArrow}</td>
+            <td onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')">${cap ? '$' + (cap / 1e9).toFixed(1) + 'B' : 'N/A'}</td>
+            <td onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')">${recommendation}</td>
+            <td>
+              <button class="watchlist-btn ${watchlistButtonClass}" 
+                      onclick="${isAddedToWatchlist ? `removeFromWatchlist('${uniqueId}')` : `addToWatchlist({name: '${asset.name}', symbol: '${asset.symbol}', type: 'stock_fmp', uniqueId: '${uniqueId}'})`}"
+                      title="${isAddedToWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'}">
+                ${watchlistButtonText}
+              </button>
+            </td>
           </tr>
         `;
         stockListTableBody.innerHTML += row;
@@ -252,7 +425,7 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
 
   // Data for Crypto table
   if (Array.isArray(cryptos) && cryptos.length === 0) {
-      cryptoListTableBody.innerHTML = '<tr><td colspan="5">No cryptocurrency data available.</td></tr>';
+      cryptoListTableBody.innerHTML = '<tr><td colspan="6">No cryptocurrency data available.</td></tr>';
   } else {
       (Array.isArray(cryptos) ? cryptos : []).forEach(asset => {
         const change = asset.price_change_percentage_24h ?? 0;
@@ -271,14 +444,27 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
         const changeClass = isGain ? 'gain' : 'loss';
         const changeArrow = isGain ? '▲' : '▼'; // Arrow indicator
 
+        // Unique ID for watchlist tracking
+        const uniqueId = `${asset.id}_crypto`;
+        const isAddedToWatchlist = userWatchlist.has(uniqueId);
+        const watchlistButtonClass = isAddedToWatchlist ? 'added' : '';
+        const watchlistButtonText = isAddedToWatchlist ? '⭐' : '☆'; // Filled star if added, empty if not
+
         // Add data-symbol and data-type attribute for click (use asset.id for CoinGecko crypto)
         const row = `
-          <tr onclick="showChartModal('${asset.id}', 'crypto', '${asset.name}')">
-            <td>${asset.name}</td>
-            <td>$${price.toLocaleString()}</td>
-            <td class="${changeClass}">${change.toFixed(2)}% ${changeArrow}</td>
-            <td>${cap ? '$' + (cap / 1e9).toFixed(1) + 'B' : 'N/A'}</td>
-            <td>${recommendation}</td>
+          <tr>
+            <td onclick="showChartModal('${asset.id}', 'crypto', '${asset.name}')">${asset.name}</td>
+            <td onclick="showChartModal('${asset.id}', 'crypto', '${asset.name}')">$${price.toLocaleString()}</td>
+            <td onclick="showChartModal('${asset.id}', 'crypto', '${asset.name}')" class="${changeClass}">${change.toFixed(2)}% ${changeArrow}</td>
+            <td onclick="showChartModal('${asset.id}', 'crypto', '${asset.name}')">${cap ? '$' + (cap / 1e9).toFixed(1) + 'B' : 'N/A'}</td>
+            <td onclick="showChartModal('${asset.id}', 'crypto', '${asset.name}')">${recommendation}</td>
+            <td>
+              <button class="watchlist-btn ${watchlistButtonClass}" 
+                      onclick="${isAddedToWatchlist ? `removeFromWatchlist('${uniqueId}')` : `addToWatchlist({name: '${asset.name}', symbol: '${asset.id}', type: 'crypto', uniqueId: '${uniqueId}'})`}"
+                      title="${isAddedToWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'}">
+                ${watchlistButtonText}
+              </button>
+            </td>
           </tr>
         `;
         cryptoListTableBody.innerHTML += row;
@@ -443,31 +629,25 @@ function handleNavigation() {
   });
 }
 
-// Variables for the chart
-let myChart; // To store the Chart.js instance
-let currentChartSymbol = ''; // Stores the symbol of the currently displayed asset
-let currentChartType = '';   // Stores the type of the currently displayed asset
-let currentChartName = '';   // Stores the name of the currently displayed asset
-
 // Function to display the chart modal
-async function showChartModal(symbol, type, name, period = '30') { // Added period parameter
+async function showChartModal(symbol, type, name, period = '30d') { // Default period to 30 days
   const modal = document.getElementById('chartModal');
   const chartTitle = document.getElementById('chartTitle');
   const chartLoading = document.getElementById('chartLoading');
   const chartError = document.getElementById('chartError');
   const chartCanvas = document.getElementById('historicalChart');
   const ctx = chartCanvas.getContext('2d');
-  const chartPeriodSelector = document.getElementById('chartPeriodSelector'); // Get the period selector container
+  const chartPeriodSelector = document.getElementById('chartPeriodSelector');
 
   // Store current asset details for period changes
   currentChartSymbol = symbol;
   currentChartType = type;
   currentChartName = name;
 
-  chartTitle.textContent = `Price Evolution Chart for ${name}`; // Translated chart title
+  chartTitle.textContent = `Price Evolution Chart for ${name}`;
   chartLoading.classList.remove('hidden');
   chartError.classList.add('hidden');
-  modal.classList.remove('hidden'); // Show modal
+  modal.classList.remove('hidden');
 
   // Create period buttons if they don't exist
   if (!chartPeriodSelector.hasChildNodes()) {
@@ -509,7 +689,7 @@ async function showChartModal(symbol, type, name, period = '30') { // Added peri
   }
 
   try {
-    const historicalData = await fetchHistoricalData(symbol, type, period); // Pass period to fetchHistoricalData
+    const historicalData = await fetchHistoricalData(symbol, type, period);
 
     if (historicalData && historicalData.length > 0) {
       renderChart(historicalData, name, ctx);
@@ -517,13 +697,13 @@ async function showChartModal(symbol, type, name, period = '30') { // Added peri
     } else {
       chartLoading.classList.add('hidden');
       chartError.classList.remove('hidden');
-      chartError.textContent = "No historical data available for this asset or API error."; // Translated error message
+      chartError.textContent = "No historical data available for this asset or API error.";
     }
   } catch (error) {
     console.error("Error loading historical data:", error);
     chartLoading.classList.add('hidden');
     chartError.classList.remove('hidden');
-    chartError.textContent = "Error loading historical data. Please try again later."; // Translated error message
+    chartError.textContent = "Error loading historical data. Please try again later.";
   }
 }
 
@@ -538,35 +718,23 @@ function closeChartModal() {
 }
 
 // Function to fetch historical data
-async function fetchHistoricalData(symbol, type, period) { // Added period parameter
+async function fetchHistoricalData(symbol, type, period) {
   const apiKey = '86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS'; // Your FMP API key
   let url = '';
-  let dataPath = ''; // To know where price data is in the response
+  let dataPath = '';
 
   if (type === 'crypto') {
-    // CoinGecko uses a unique ID for each crypto (e.g., 'bitcoin')
-    // The 'symbol' passed here is already the CoinGecko ID
-    // CoinGecko periods are '1', '7', '14', '30', '90', '180', '365', 'max'
     let days = period;
     if (period === '7d') days = '7';
     else if (period === '30d') days = '30';
-    else if (period === '90d') days = '90'; // Use '90' for 3 months
-    else if (period === '365d') days = '365'; // Use '365' for 1 year
+    else if (period === '90d') days = '90';
+    else if (period === '365d') days = '365';
     else if (period === 'max') days = 'max';
     else days = '30'; // Default to 30 days
 
     url = `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=${days}`;
-    dataPath = 'prices'; // Price data is under the 'prices' key
+    dataPath = 'prices';
   } else {
-    // For stocks, forex, indices, commodities (Financial Modeling Prep)
-    // Using 'historical-price-full' endpoint
-    // FMP periods can be more complex, often requiring 'from' and 'to' dates
-    // For simplicity, we'll fetch a larger range and filter locally if needed,
-    // or use FMP's period parameters if available and simple.
-    // FMP's historical-price-full endpoint doesn't directly support 'days' parameter like CoinGecko.
-    // We'll fetch a large enough range (e.g., 5 years) and filter in renderChart.
-    // Or, if a specific period is needed, we'd calculate start/end dates.
-    
     let endDate = new Date();
     let startDate = new Date();
 
@@ -586,7 +754,7 @@ async function fetchHistoricalData(symbol, type, period) { // Added period param
 
     const formatDate = (date) => date.toISOString().split('T')[0];
     url = `https://financialmodelingprep.com/api/v3/historical-price-full/${symbol}?from=${formatDate(startDate)}&to=${formatDate(endDate)}&apikey=${apiKey}`;
-    dataPath = 'historical'; // Historical data is under the 'historical' key
+    dataPath = 'historical';
   }
 
   try {
@@ -594,18 +762,15 @@ async function fetchHistoricalData(symbol, type, period) { // Added period param
     const data = await response.json();
 
     if (type === 'crypto' && data[dataPath]) {
-      // CoinGecko returns an array of [timestamp, price]
       return data[dataPath].map(item => ({
-        date: new Date(item[0]).toLocaleDateString('en-US'), // Changed to en-US for date format
+        date: new Date(item[0]).toLocaleDateString('en-US'),
         price: item[1]
       }));
     } else if (data[dataPath]) {
-      // FMP returns an array of objects with 'date' and 'close'
-      // We want the most recent data first, so reverse
       return data[dataPath].map(item => ({
         date: item.date,
         price: item.close
-      })).reverse(); // Reverse to have dates in ascending order
+      })).reverse();
     } else {
       console.warn(`No historical data found for ${symbol} (${type}). API response:`, data);
       return [];
@@ -626,46 +791,46 @@ function renderChart(historicalData, assetName, ctx) {
     data: {
       labels: labels,
       datasets: [{
-        label: `Price of ${assetName} (USD)`, // Translated chart label
+        label: `Price of ${assetName} (USD)`,
         data: prices,
-        borderColor: '#61dafb', // Couleur du graphique bleu clair
-        backgroundColor: 'rgba(97, 218, 251, 0.1)', // Fond du graphique transparent
-        tension: 0.2, // Légère courbure pour un aspect plus doux
+        borderColor: '#61dafb',
+        backgroundColor: 'rgba(97, 218, 251, 0.1)',
+        tension: 0.2,
         fill: true,
-        pointRadius: 0 // Cacher les points individuels
+        pointRadius: 0
       }]
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false, // Allows the chart to adapt to canvas size
+      maintainAspectRatio: false,
       scales: {
         x: {
           title: {
             display: true,
-            text: 'Date', // Translated axis title
-            color: '#e0e0e0' // Couleur du texte de l'axe
+            text: 'Date',
+            color: '#e0e0e0'
           },
           ticks: {
-            color: '#b0b0b0' // Couleur des étiquettes de l'axe
+            color: '#b0b0b0'
           },
           grid: {
-            color: '#3a3a3a' // Couleur de la grille
+            color: '#3a3a3a'
           }
         },
         y: {
           title: {
             display: true,
-            text: 'Price (USD)', // Translated axis title
-            color: '#e0e0e0' // Couleur du texte de l'axe
+            text: 'Price (USD)',
+            color: '#e0e0e0'
           },
           ticks: {
-            color: '#b0b0b0', // Couleur des étiquettes de l'axe
+            color: '#b0b0b0',
             callback: function(value) {
                 return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
             }
           },
           grid: {
-            color: '#3a3a3a' // Couleur de la grille
+            color: '#3a3a3a'
           }
         }
       },
@@ -686,7 +851,7 @@ function renderChart(historicalData, assetName, ctx) {
         },
         legend: {
             labels: {
-                color: '#e0e0e0' // Couleur du texte de la légende
+                color: '#e0e0e0'
             }
         }
       }
@@ -694,11 +859,23 @@ function renderChart(historicalData, assetName, ctx) {
   });
 }
 
-// Initialisation de la navigation et récupération des données au chargement du DOM
+// --- Initialisation au chargement du DOM ---
 document.addEventListener('DOMContentLoaded', () => {
-  handleNavigation(); // Initializes navigation and section visibility
-  fetchData(); // Initial data fetch
-  // Add event listener for the search bar
+  initializeFirebase(); // Initialise Firebase et l'authentification
+  handleNavigation(); // Initialise la navigation et la visibilité des sections
+  fetchData(); // Première récupération des données
+
+  // Gestion du bouton d'authentification
+  document.getElementById('authButton').addEventListener('click', async () => {
+    if (auth.currentUser) {
+      await signOut(auth);
+    } else {
+      // Si déconnecté, tente de se reconnecter anonymement
+      await signInAnonymously(auth);
+    }
+  });
+
+  // Ajout de l'écouteur d'événement pour la barre de recherche
   const searchBar = document.querySelector('.search-bar');
   if (searchBar) {
     searchBar.addEventListener('input', (e) => {
@@ -706,13 +883,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Listener for modal close button
+  // Écouteur pour le bouton de fermeture du modal
   const closeButton = document.querySelector('.close-button');
   if (closeButton) {
     closeButton.addEventListener('click', closeChartModal);
   }
 
-  // Close modal if clicking outside content (on overlay)
+  // Fermer le modal si l'on clique en dehors du contenu (sur l'overlay)
   const chartModal = document.getElementById('chartModal');
   if (chartModal) {
     chartModal.addEventListener('click', (e) => {
