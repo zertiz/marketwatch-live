@@ -1,18 +1,18 @@
 body {
   font-family: 'Roboto', sans-serif;
-  background-color: #f5f7fa; /* Couleur de fond claire */
+  background-color: #1a1a1a; /* Fond sombre */
   margin: 0;
   padding: 0;
-  color: #333;
+  color: #e0e0e0; /* Texte clair */
 }
 
 .top-bar {
-  background-color: #fff;
+  background-color: #2a2a2a; /* Barre supérieure plus foncée */
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 15px 30px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); /* Ombre plus prononcée */
   position: sticky;
   top: 0;
   z-index: 1000;
@@ -21,17 +21,17 @@ body {
 .logo {
   font-size: 24px;
   font-weight: bold;
-  color: #007bff;
+  color: #61dafb; /* Couleur du logo (bleu clair) */
 }
 
 .main-nav a {
   text-decoration: none;
-  color: #555;
+  color: #b0b0b0; /* Liens de navigation clairs */
   margin: 0 15px;
 }
 
 .main-nav a.active {
-  color: #007bff;
+  color: #61dafb; /* Lien actif bleu clair */
   font-weight: bold;
 }
 
@@ -43,13 +43,15 @@ body {
 .search-bar {
   padding: 8px 12px;
   border-radius: 20px;
-  border: 1px solid #ccc;
+  border: 1px solid #444; /* Bordure plus foncée */
+  background-color: #333; /* Fond de recherche sombre */
+  color: #e0e0e0; /* Texte de recherche clair */
   margin-right: 10px;
 }
 
 .auth-btn {
-  background-color: #007bff;
-  color: white;
+  background-color: #61dafb; /* Bouton bleu clair */
+  color: #1a1a1a; /* Texte sombre sur bouton clair */
   border: none;
   padding: 8px 16px;
   border-radius: 20px;
@@ -64,15 +66,15 @@ body {
 
 .sidebar {
   width: 250px;
-  background: #fff;
+  background: #2a2a2a; /* Barre latérale sombre */
   padding: 20px;
   border-radius: 12px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.05);
+  box-shadow: 0 0 10px rgba(0,0,0,0.2); /* Ombre plus prononcée */
 }
 
 .sidebar h3 {
   margin-bottom: 10px;
-  color: #222;
+  color: #61dafb; /* Titres de la barre latérale bleu clair */
 }
 
 .sidebar ul {
@@ -83,8 +85,9 @@ body {
 
 .sidebar li {
   padding: 8px 0;
-  border-bottom: 1px dashed #ddd;
+  border-bottom: 1px dashed #444; /* Séparateur plus foncé */
   font-size: 15px;
+  color: #e0e0e0; /* Texte de liste clair */
 }
 
 .main-content {
@@ -95,21 +98,21 @@ body {
 }
 
 .card {
-  background: #fff;
+  background: #2a2a2a; /* Fond de carte sombre */
   padding: 20px;
   border-radius: 12px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.05);
+  box-shadow: 0 0 10px rgba(0,0,0,0.2); /* Ombre plus prononcée */
 }
 
 h2 {
   margin-top: 0;
   margin-bottom: 15px;
-  color: #007bff;
+  color: #61dafb; /* Titres de section bleu clair */
 }
 
 .news-item {
   padding: 10px 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #444; /* Séparateur de nouvelles plus foncé */
 }
 
 .news-item:last-child {
@@ -123,25 +126,26 @@ table {
 
 th, td {
   padding: 12px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #444; /* Bordure de tableau plus foncée */
   text-align: left;
-  cursor: pointer; /* Ajouté pour indiquer que les lignes sont cliquables */
+  cursor: pointer;
+  color: #e0e0e0; /* Texte de tableau clair */
 }
 
 th {
-  background-color: #f9f9f9;
+  background-color: #333; /* Fond d'en-tête de tableau sombre */
   font-weight: bold;
   font-size: 14px;
-  color: #444;
+  color: #b0b0b0; /* Texte d'en-tête clair */
 }
 
 .gain {
-  color: green;
+  color: #00ff00; /* Vert vif pour les gains */
   font-weight: bold;
 }
 
 .loss {
-  color: red;
+  color: #ff4500; /* Orange-rouge pour les pertes */
   font-weight: bold;
 }
 
@@ -175,7 +179,7 @@ th {
 
 .rss-item a {
   font-weight: 600;
-  color: #004080;
+  color: #61dafb; /* Liens RSS bleu clair */
   text-decoration: none;
 }
 
@@ -185,17 +189,17 @@ th {
 
 .rss-item small {
   display: block;
-  color: #666;
+  color: #b0b0b0; /* Texte secondaire RSS clair */
   font-size: 0.85rem;
 }
 .news-card {
   display: flex;
   gap: 1rem;
   margin-bottom: 1.5rem;
-  background: #f9f9f9;
+  background: #333; /* Fond de carte de nouvelles sombre */
   border-radius: 10px;
   padding: 0.75rem;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
 .news-thumb {
@@ -212,7 +216,7 @@ th {
 
 .news-content h4 a {
   text-decoration: none;
-  color: #003366;
+  color: #61dafb; /* Liens de titre de nouvelles bleu clair */
 }
 
 .news-content h4 a:hover {
@@ -221,47 +225,48 @@ th {
 
 .news-date {
   font-size: 0.85rem;
-  color: #666;
+  color: #b0b0b0; /* Date de nouvelles claire */
   margin-top: 4px;
 }
 
 .news-source {
   margin-top: 2rem;
   font-size: 1.2rem;
-  color: #222;
-  border-left: 4px solid #004080;
+  color: #61dafb; /* Source de nouvelles bleu clair */
+  border-left: 4px solid #61dafb; /* Bordure bleu clair */
   padding-left: 10px;
 }
 
 /* Styles pour le modal du graphique */
 .modal {
-  display: flex; /* Utilise flexbox pour centrer le contenu */
-  position: fixed; /* Reste en place même en scrollant */
-  z-index: 2000; /* Plus élevé que les autres éléments */
+  display: flex;
+  position: fixed;
+  z-index: 2000;
   left: 0;
   top: 0;
-  width: 100%; /* Pleine largeur */
-  height: 100%; /* Pleine hauteur */
-  overflow: auto; /* Permet le défilement si le contenu est trop grand */
-  background-color: rgba(0,0,0,0.6); /* Fond noir semi-transparent */
-  justify-content: center; /* Centre horizontalement */
-  align-items: center; /* Centre verticalement */
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.8); /* Fond du modal plus sombre */
+  justify-content: center;
+  align-items: center;
 }
 
 .modal-content {
-  background-color: #fefefe;
-  margin: auto; /* Centrage automatique */
+  background-color: #2a2a2a; /* Fond du contenu du modal sombre */
+  margin: auto;
   padding: 20px;
   border-radius: 12px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-  width: 90%; /* Largeur du contenu du modal */
-  max-width: 800px; /* Largeur maximale */
+  box-shadow: 0 5px 15px rgba(0,0,0,0.5); /* Ombre plus prononcée */
+  width: 90%;
+  max-width: 800px;
   position: relative;
-  animation: fadeIn 0.3s ease-out; /* Animation d'apparition */
+  animation: fadeIn 0.3s ease-out;
+  color: #e0e0e0; /* Texte du modal clair */
 }
 
 .close-button {
-  color: #aaa;
+  color: #b0b0b0; /* Bouton de fermeture clair */
   float: right;
   font-size: 28px;
   font-weight: bold;
@@ -273,13 +278,13 @@ th {
 
 .close-button:hover,
 .close-button:focus {
-  color: #333;
+  color: #e0e0e0; /* Bouton de fermeture au survol */
   text-decoration: none;
 }
 
 .chart-container {
   position: relative;
-  height: 400px; /* Hauteur fixe pour le graphique */
+  height: 400px;
   width: 100%;
   margin-top: 20px;
 }
@@ -287,12 +292,12 @@ th {
 .loading-message, .error-message {
   text-align: center;
   font-style: italic;
-  color: #666;
+  color: #b0b0b0; /* Messages de chargement/erreur clairs */
   margin-top: 10px;
 }
 
 .error-message {
-  color: red;
+  color: #ff4500; /* Erreur en orange-rouge */
   font-weight: bold;
 }
 
