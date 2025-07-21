@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -11,80 +11,79 @@
   <header class="top-bar">
     <div class="logo">MarketWatch Live</div>
     <nav class="main-nav">
-      <a href="#" class="nav-link active" data-section="home">Home</a>
-      <a href="#" class="nav-link" data-section="stocks">Stocks</a>
+      <a href="#" class="nav-link active" data-section="home">Accueil</a>
+      <a href="#" class="nav-link" data-section="stocks">Bourse</a>
       <a href="#" class="nav-link" data-section="crypto">Crypto</a>
-      <a href="#" class="nav-link" data-section="news">International News</a>
+      <a href="#" class="nav-link" data-section="news">Actualité internationale</a>
     </nav>
     <div class="user-actions">
-      <input type="text" placeholder="Search..." class="search-bar" />
-      <!-- Le sélecteur de devise est retiré -->
-      <button class="auth-btn" id="authButton">Login</button>
+      <input type="text" placeholder="Rechercher..." class="search-bar" />
+      <button class="auth-btn" id="authButton">Connexion</button>
     </div>
   </header>
 
   <div class="container">
     <aside class="sidebar">
       <div class="sidebar-section">
-        <h3>Market Indices 📈</h3>
+        <h3>Indices du marché 📈</h3>
         <ul id="indices-list">
-          <li>Loading...</li>
+          <li>Chargement...</li>
         </ul>
       </div>
       <div class="sidebar-section">
-        <h3>Recommendations 🔧</h3>
+        <h3>Recommandations 🔧</h3>
         <ul id="recommendations">
-          <li>Loading...</li>
+          <li>Chargement...</li>
         </ul>
       </div>
     </aside>
 
     <main class="main-content">
       <section id="home" class="card content-section">
-        <h2>Welcome to MarketWatch Live</h2>
-        <p>Use the tabs to navigate between stock, crypto, and international financial news.</p>
+        <h2>Bienvenue sur MarketWatch Live</h2>
+        <p>Utilisez les onglets pour naviguer entre les informations boursières, crypto et actualités financières internationales.</p>
       </section>
 
       <section id="stocks" class="watchlist card content-section hidden">
-        <h2>Stock Prices 📉</h2>
+        <h2>Cours des Actions 📉</h2>
         <table>
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Price</th>
-              <th>24h %</th>
-              <th>Cap.</th>
-              <th>Advice</th>
+              <th data-sort-key="name" data-sort-direction="asc">Nom <span class="sort-arrow"></span></th>
+              <th data-sort-key="price" data-sort-direction="asc">Prix <span class="sort-arrow"></span></th>
+              <th data-sort-key="changesPercentage" data-sort-direction="asc">24h % <span class="sort-arrow"></span></th>
+              <th data-sort-key="marketCap" data-sort-direction="asc">Cap. <span class="sort-arrow"></span></th>
+              <th>Conseil</th>
             </tr>
           </thead>
           <tbody id="stock-list">
-            <tr><td colspan="5">Loading...</td></tr>
+            <tr><td colspan="5">Chargement...</td></tr>
           </tbody>
         </table>
       </section>
 
       <section id="crypto" class="watchlist card content-section hidden">
-        <h2>Cryptocurrency Prices 💰</h2>
+        <h2>Cours des Cryptomonnaies 💰</h2>
         <table>
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Price</th>
-              <th>24h %</th>
-              <th>Cap.</th>
-              <th>Advice</th>
+              <th data-sort-key="name" data-sort-direction="asc">Nom <span class="sort-arrow"></span></th>
+              <th data-sort-key="current_price" data-sort-direction="asc">Prix <span class="sort-arrow"></span></th>
+              <th data-sort-key="price_change_percentage_24h" data-sort-direction="asc">24h % <span class="sort-arrow"></span></th>
+              <th data-sort-key="market_cap" data-sort-direction="asc">Cap. <span class="sort-arrow"></span></th>
+              <th>Conseil</th>
             </tr>
           </thead>
           <tbody id="crypto-list">
-            <tr><td colspan="5">Loading...</td></tr>
+            <tr><td colspan="5">Chargement...</td></tr>
           </tbody>
         </table>
       </section>
 
       <section id="news" class="market-news card content-section hidden">
-        <h2>International Financial News 🌍</h2>
+        <h2>Actualité financière internationale 🌍</h2>
         <div id="news-articles">
-          <p>Loading news...</p>
+          <p>Chargement des actualités...</p>
         </div>
       </section>
     </main>
@@ -95,12 +94,12 @@
     <div class="modal-content">
       <span class="close-button">&times;</span>
       <h2 id="chartTitle"></h2>
-      <p id="chartLoading" class="loading-message">Loading chart...</p>
+      <!-- Le message de chargement du graphique a été retiré, seul le message d'erreur reste -->
       <p id="chartError" class="error-message hidden"></p>
       
-      <!-- Sélecteur de période du graphique -->
-      <div id="chartPeriodSelector" class="chart-period-selector">
-        <!-- Les boutons seront générés par JavaScript -->
+      <!-- Sélecteur de période du graphique (sera masqué par JS) -->
+      <div id="chartPeriodSelector" class="chart-period-selector hidden">
+        <!-- Les boutons seront générés par JavaScript si besoin, mais ici ils sont masqués -->
       </div>
 
       <div class="chart-container">

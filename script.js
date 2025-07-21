@@ -26,6 +26,9 @@ function formatPrice(price, currencyCode) {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
 }
 
+// Les fonctions showGlobalLoadingSpinner et hideGlobalLoadingSpinner ont été retirées.
+
+
 // --- Fonctions de Récupération et Mise à Jour des Données ---
 
 async function fetchData() {
@@ -127,6 +130,8 @@ async function fetchData() {
     document.getElementById('crypto-list').innerHTML = `<tr><td colspan="5" class="error-message">${genericErrorMessage}</td></tr>`;
     document.getElementById('indices-list').innerHTML = `<li><span class="error-message">${genericErrorMessage}</span></li>`;
     document.getElementById('recommendations').innerHTML = `<li><span class="error-message">${genericErrorMessage}</span></li>`;
+  } finally {
+    // hideGlobalLoadingSpinner(); // Appel retiré
   }
 }
 
@@ -206,11 +211,51 @@ async function fetchNews() {
   } catch (error) {
     console.error("Error loading news:", error);
     newsContainer.innerHTML = '<p class="error-message">Error loading news. Please check your internet connection or try again later.</p>';
+  } finally {
+    // hideGlobalLoadingSpinner(); // Appel retiré
   }
 }
 
+/**
+ * Sorts an array of data by a specified key and direction.
+ * @param {Array} data The array of data to sort.
+ * @param {string} key The key by which to sort (property property).
+ * @param {string} direction The sort direction ('asc' for ascending, 'desc' for descending).
+ * @returns {Array} The sorted array.
+ */
+function sortData(data, key, direction) {
+  if (!data || data.length === 0) return [];
+
+  const sorted = [...data].sort((a, b) => {
+    let valA = a[key];
+    let valB = b[key];
+
+    // Handle cases where values are null or non-numeric for numeric sorting
+    if (typeof valA === 'number' && typeof valB === 'number') {
+        if (valA === null || isNaN(valA)) valA = -Infinity; // Put null/NaN at the bottom for asc
+        if (valB === null || isNaN(valB)) valB = -Infinity; // Put null/NaN at the bottom for asc
+    } else if (typeof valA === 'string' && typeof valB === 'string') {
+        valA = valA.toLowerCase();
+        valB = valB.toLowerCase();
+    } else {
+        // Fallback for other types, convert to string if possible
+        valA = String(valA).toLowerCase();
+        valB = String(valB).toLowerCase();
+    }
+
+    if (valA < valB) {
+      return direction === 'asc' ? -1 : 1;
+    }
+    if (valA > valB) {
+      return direction === 'asc' ? 1 : -1;
+    }
+    return 0;
+  });
+  return sorted;
+}
+
 // Function to update stock and crypto lists
-function updateLists(stocks, cryptos, forex, indices, commodities) {
+function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = {}) {
   const stockListTableBody = document.getElementById('stock-list');
   const cryptoListTableBody = document.getElementById('crypto-list');
   const recList = document.getElementById('recommendations');
@@ -221,7 +266,7 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
   stockListTableBody.innerHTML = '';
   cryptoListTableBody.innerHTML = '';
 
-  const currencySymbol = getCurrencySymbol(currentCurrency); // Sera toujours '$'
+  const currencySymbol = getCurrencySymbol(currentCurrency); // Will always be '$'
 
   // Data for Stock/Forex/Indices/Commodities table (FMP data)
   const allNonCryptoAssets = [
@@ -231,33 +276,44 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
     ...(Array.isArray(commodities) ? commodities : [])
   ];
 
-  if (allNonCryptoAssets.length === 0) {
+  // Apply sorting if a configuration is provided
+  let sortedStocks = allNonCryptoAssets;
+  let sortedCryptos = cryptos;
+
+  if (sortConfig.tableId === 'stock-list') {
+      sortedStocks = sortData(allNonCryptoAssets, sortConfig.key, sortConfig.direction);
+  } else if (sortConfig.tableId === 'crypto-list') {
+      sortedCryptos = sortData(cryptos, sortConfig.key, sortConfig.direction);
+  }
+
+
+  if (sortedStocks.length === 0) {
       stockListTableBody.innerHTML = `<tr><td colspan="5">No stock, forex, indices, or commodities data available.</td></tr>`;
   } else {
-      allNonCryptoAssets.forEach(asset => {
+      sortedStocks.forEach(asset => {
         const change = asset.changesPercentage ?? 0;
-        const price = asset.price ?? 0; // Prix déjà en USD
-        const cap = asset.marketCap ?? 0; // Capitalisation déjà en USD
+        const price = asset.price ?? 0;
+        const cap = asset.marketCap ?? 0;
         
         const isGain = change >= 0;
         let recommendation = '';
         if (change > 3) {
-          recommendation = '📈 Buy';
+          recommendation = '📈 Acheter';
         } else if (change < -3) {
-          recommendation = '📉 Sell';
+          recommendation = '📉 Vendre';
         } else {
-          recommendation = '🤝 Hold';
+          recommendation = '🤝 Conserver';
         }
         const changeClass = isGain ? 'gain' : 'loss';
         const changeArrow = isGain ? '▲' : '▼';
 
         const row = `
-          <tr>
-            <td onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')">${asset.name}</td>
-            <td onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')">${formatPrice(price, currentCurrency)}</td>
-            <td onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')" class="${changeClass}">${change.toFixed(2)}% ${changeArrow}</td>
-            <td onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')">${cap ? formatPrice(cap, currentCurrency) : 'N/A'}</td>
-            <td onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')">${recommendation}</td>
+          <tr onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')">
+            <td>${asset.name}</td>
+            <td>${formatPrice(price, currentCurrency)}</td>
+            <td class="${changeClass}">${change.toFixed(2)}% ${changeArrow}</td>
+            <td>${cap ? formatPrice(cap, currentCurrency) : 'N/A'}</td>
+            <td>${recommendation}</td>
           </tr>
         `;
         stockListTableBody.innerHTML += row;
@@ -265,33 +321,33 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
   }
 
 
-  // Data for Crypto table (CoinGecko data - déjà en USD)
-  if (Array.isArray(cryptos) && cryptos.length === 0) {
+  // Data for Crypto table (CoinGecko data - already in USD)
+  if (sortedCryptos.length === 0) {
       cryptoListTableBody.innerHTML = `<tr><td colspan="5">No cryptocurrency data available.</td></tr>`;
   } else {
-      (Array.isArray(cryptos) ? cryptos : []).forEach(asset => {
+      sortedCryptos.forEach(asset => {
         const change = asset.price_change_percentage_24h ?? 0;
-        const price = asset.current_price ?? 0; // Déjà en USD
-        const cap = asset.market_cap ?? 0; // Déjà en USD
+        const price = asset.current_price ?? 0;
+        const cap = asset.market_cap ?? 0;
         const isGain = change >= 0;
         let recommendation = '';
         if (change > 3) {
-          recommendation = '📈 Buy';
+          recommendation = '📈 Acheter';
         } else if (change < -3) {
-          recommendation = '📉 Sell';
+          recommendation = '📉 Vendre';
         } else {
-          recommendation = '🤝 Hold';
+          recommendation = '🤝 Conserver';
         }
         const changeClass = isGain ? 'gain' : 'loss';
         const changeArrow = isGain ? '▲' : '▼';
 
         const row = `
-          <tr>
-            <td onclick="showChartModal('${asset.id}', 'crypto', '${asset.name}')">${asset.name}</td>
-            <td onclick="showChartModal('${asset.id}', 'crypto', '${asset.name}')">${formatPrice(price, currentCurrency)}</td>
-            <td onclick="showChartModal('${asset.id}', 'crypto', '${asset.name}')" class="${changeClass}">${change.toFixed(2)}% ${changeArrow}</td>
-            <td onclick="showChartModal('${asset.id}', 'crypto', '${asset.name}')">${cap ? formatPrice(cap, currentCurrency) : 'N/A'}</td>
-            <td onclick="showChartModal('${asset.id}', 'crypto', '${asset.name}')">${recommendation}</td>
+          <tr onclick="showChartModal('${asset.id}', 'crypto', '${asset.name}')">
+            <td>${asset.name}</td>
+            <td>${formatPrice(price, currentCurrency)}</td>
+            <td class="${changeClass}">${change.toFixed(2)}% ${changeArrow}</td>
+            <td>${cap ? formatPrice(cap, currentCurrency) : 'N/A'}</td>
+            <td>${recommendation}</td>
           </tr>
         `;
         cryptoListTableBody.innerHTML += row;
@@ -313,7 +369,7 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
   } else {
       recList.innerHTML = allAssetsForRecommendations.map(asset => {
         const change = asset.price_change_percentage_24h ?? asset.changesPercentage ?? 0;
-        const recommendation = change > 3 ? '📈 Buy' : change < -3 ? '📉 Sell' : '🤝 Hold';
+        const recommendation = change > 3 ? '📈 Acheter' : change < -3 ? '📉 Vendre' : '🤝 Conserver';
         return `<li>${asset.name}: ${recommendation}</li>`;
       }).join('');
   }
@@ -326,7 +382,6 @@ function updateIndices(data) {
 
   if (!Array.isArray(data)) {
     console.error("Data for updateIndices is not an array.", data);
-    list.innerHTML = '<li>No market indices available.</li>';
     return;
   }
   
@@ -400,7 +455,7 @@ function performSearch(query) {
   document.getElementById('home').classList.add('hidden');
 
   updateLists(filteredStocks, filteredCryptos, filteredForex, filteredIndices, filteredCommodities);
-  updateIndices([...filteredIndices, ...filteredCommodities]);
+  updateIndices([...filteredIndices, ...allFetchedData.commodities]);
 }
 
 // Handle navigation between sections
@@ -435,54 +490,32 @@ function handleNavigation() {
   });
 }
 
-// Function to display the chart modal
-async function showChartModal(symbol, type, name, period = '30d') { // Default period to 30 days
+// Fonction pour afficher le modal du graphique
+// Removed 'period' parameter as it's now fixed to 1 year
+async function showChartModal(symbol, type, name) {
   const modal = document.getElementById('chartModal');
   const chartTitle = document.getElementById('chartTitle');
-  const chartLoading = document.getElementById('chartLoading');
+  // const chartLoading = document.getElementById('chartLoading'); // Référence retirée
   const chartError = document.getElementById('chartError');
   const chartCanvas = document.getElementById('historicalChart');
   const ctx = chartCanvas.getContext('2d');
-  const chartPeriodSelector = document.getElementById('chartPeriodSelector');
+  const chartPeriodSelector = document.getElementById('chartPeriodSelector'); // This will be hidden/empty
 
-  // Store current asset details for period changes
+  // Store current asset details
   currentChartSymbol = symbol;
   currentChartType = type;
   currentChartName = name;
 
-  chartTitle.textContent = `Price Evolution Chart for ${name} (USD)`; // Titre du graphique en USD
-  chartLoading.classList.remove('hidden');
+  chartTitle.textContent = `Évolution du prix pour ${name} (USD)`;
+  // chartLoading.classList.remove('hidden'); // Appel retiré
   chartError.classList.add('hidden');
   modal.classList.remove('hidden');
 
-  // Always clear and recreate period buttons to ensure they appear
-  chartPeriodSelector.innerHTML = ''; // Clear existing buttons
-  const periods = {
-      '7d': '7 Days',
-      '30d': '30 Days',
-      '90d': '3 Months',
-      '365d': '1 Year',
-      'max': 'Max'
-  };
-  for (const p in periods) {
-      const button = document.createElement('button');
-      button.textContent = periods[p];
-      button.dataset.period = p;
-      button.addEventListener('click', () => {
-          document.querySelectorAll('.chart-period-selector button').forEach(btn => btn.classList.remove('active'));
-          button.classList.add('active');
-          showChartModal(currentChartSymbol, currentChartType, currentChartName, p);
-      });
-      chartPeriodSelector.appendChild(button);
+  // Clear and hide period selector buttons as they are no longer needed
+  if (chartPeriodSelector) { // Added null check
+    chartPeriodSelector.innerHTML = '';
+    chartPeriodSelector.classList.add('hidden'); // Ensure it's hidden
   }
-  // Set active class for the current period
-  document.querySelectorAll('.chart-period-selector button').forEach(btn => {
-      if (btn.dataset.period === period) {
-          btn.classList.add('active');
-      } else {
-          btn.classList.remove('active');
-      }
-  });
 
 
   // Destroy old chart if it exists
@@ -491,72 +524,52 @@ async function showChartModal(symbol, type, name, period = '30d') { // Default p
   }
 
   try {
-    // Appel à fetchHistoricalData sans le paramètre targetCurrency, car il est fixe à USD
-    const historicalData = await fetchHistoricalData(symbol, type, period);
+    // Call fetchHistoricalData without period, it will default to 1 year
+    const historicalData = await fetchHistoricalData(symbol, type);
 
     if (historicalData && historicalData.length > 0) {
       renderChart(historicalData, name, ctx, currentCurrency);
-      chartLoading.classList.add('hidden');
+      // chartLoading.classList.add('hidden'); // Appel retiré
     } else {
-      chartLoading.classList.add('hidden');
+      // chartLoading.classList.add('hidden'); // Appel retiré
       chartError.classList.remove('hidden');
-      chartError.textContent = "No historical data available for this asset or API error.";
+      chartError.textContent = "Aucune donnée historique disponible pour cet actif ou erreur API.";
     }
   } catch (error) {
-    console.error("Error loading historical data:", error);
-    chartLoading.classList.add('hidden');
+    console.error("Erreur lors du chargement des données historiques:", error);
+    // chartLoading.classList.add('hidden'); // Appel retiré
     chartError.classList.remove('hidden');
-    chartError.textContent = "Error loading historical data. Please try again later.";
+    chartError.textContent = "Erreur lors du chargement des données historiques. Veuillez réessayer plus tard.";
   }
 }
 
-// Function to close the chart modal
+// Fonction pour fermer le modal du graphique
 function closeChartModal() {
   document.getElementById('chartModal').classList.add('hidden');
   if (myChart) {
     myChart.destroy();
   }
-  document.getElementById('chartPeriodSelector').innerHTML = ''; // Clear period selector buttons
+  // No need to clear chartPeriodSelector.innerHTML as it's hidden now
 }
 
-// Function to fetch historical data (simplifiée pour USD)
-async function fetchHistoricalData(symbol, type, period) {
-  const apiKey = '86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS';
+// Fonction pour récupérer les données historiques
+// Removed 'period' parameter as it's now fixed to 1 year and no caching
+async function fetchHistoricalData(symbol, type) {
+  const apiKey = '8C6eqw9VAcDUFxs1UERgRgY64pNe9xYd';
   let url = '';
   let dataPath = '';
+  const fixedPeriod = '365d'; // Fixed to 1 year
 
-  console.log(`Fetching historical data for ${symbol} (${type}) for period: ${period}`); // Debugging: log request
+  console.log(`Fetching historical data for ${symbol} (${type}) for period: ${fixedPeriod}`); // Debugging: log request
 
   if (type === 'crypto') {
-    let days = period;
-    if (period === '7d') days = '7';
-    else if (period === '30d') days = '30';
-    else if (period === '90d') days = '90';
-    else if (period === '365d') days = '365';
-    else if (period === 'max') days = 'max'; // CoinGecko supporte 'max'
-    else days = '30';
-
-    // CoinGecko sera toujours en USD
-    url = `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=${days}`;
+    // For CoinGecko, '365' days for 1 year
+    url = `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=365`;
     dataPath = 'prices';
-  } else {
+  } else { // For stocks, forex, indices, commodities (FMP)
     let endDate = new Date();
     let startDate = new Date();
-
-    if (period === '7d') {
-        startDate.setDate(endDate.getDate() - 7);
-    } else if (period === '30d') {
-        startDate.setDate(endDate.getDate() - 30);
-    } else if (period === '90d') {
-        startDate.setMonth(endDate.getMonth() - 3);
-    } else if (period === '365d') {
-        startDate.setFullYear(endDate.getFullYear() - 1);
-    } else if (period === 'max') {
-        // Pour FMP, tenter une période très longue pour simuler le "max"
-        startDate.setFullYear(endDate.getFullYear() - 20); // Essayer 20 ans
-    } else {
-        startDate.setDate(endDate.getDate() - 30);
-    }
+    startDate.setFullYear(endDate.getFullYear() - 1); // Fixed to 1 year ago
 
     const formatDate = (date) => date.toISOString().split('T')[0];
     url = `https://financialmodelingprep.com/api/v3/historical-price-full/${symbol}?from=${formatDate(startDate)}&to=${formatDate(endDate)}&apikey=${apiKey}`;
@@ -570,11 +583,11 @@ async function fetchHistoricalData(symbol, type, period) {
     console.log(`Response status for ${url}: ${response.status}`); // Debugging: log response status
     if (!response.ok) {
         const errorText = await response.text();
-        console.error(`API error for historical data (${type}, ${symbol}, ${period}): Status ${response.status} - ${errorText}`);
+        console.error(`API error for historical data (${type}, ${symbol}, ${fixedPeriod}): Status ${response.status} - ${errorText}`);
         throw new Error(`Failed to fetch historical data: ${response.statusText || 'Unknown error'}. Check API key and console.`);
     }
     const data = await response.json();
-    console.log(`Raw data received for ${symbol} (${type}, ${period}):`, data); // Debugging: log raw data
+    console.log(`Raw data received for ${symbol} (${type}, ${fixedPeriod}):`, data); // Debugging: log raw data
 
     let historicalPrices = [];
 
@@ -583,11 +596,11 @@ async function fetchHistoricalData(symbol, type, period) {
         date: new Date(item[0]).toLocaleDateString('en-US'),
         price: item[1]
       }));
-    } else if (data[dataPath]) {
+    } else if (data[dataPath]) { // FMP data
       historicalPrices = data[dataPath].map(item => ({
           date: item.date,
           price: item.close
-      })).reverse();
+      })).reverse(); // FMP returns in reverse chronological order
     } else {
       console.warn(`No historical data found for ${symbol} (${type}). API response:`, data);
       return [];
@@ -599,21 +612,21 @@ async function fetchHistoricalData(symbol, type, period) {
   }
 }
 
-// Function to render the chart with Chart.js
+// Fonction pour rendre le graphique avec Chart.js
 function renderChart(historicalData, assetName, ctx, currencyCode) {
   const labels = historicalData.map(data => data.date);
   const prices = historicalData.map(data => data.price);
-  const currencySymbol = getCurrencySymbol(currencyCode); // Sera toujours '$'
+  const currencySymbol = getCurrencySymbol(currencyCode); // Will always be '$'
 
   myChart = new Chart(ctx, {
     type: 'line',
     data: {
       labels: labels,
       datasets: [{
-        label: `Price of ${assetName} (USD)`, // Label du graphique en USD
+        label: `Price of ${assetName} (USD)`, // Chart label in USD
         data: prices,
-        borderColor: '#61dafb', // Couleur du graphique bleu clair
-        backgroundColor: 'rgba(97, 218, 251, 0.1)', // Fond du graphique transparent
+        borderColor: '#61dafb', // Light blue chart color
+        backgroundColor: 'rgba(97, 218, 251, 0.1)', // Transparent chart background
         tension: 0.2,
         fill: true,
         pointRadius: 0
@@ -639,13 +652,13 @@ function renderChart(historicalData, assetName, ctx, currencyCode) {
         y: {
           title: {
             display: true,
-            text: `Price (USD)`, // Titre de l'axe Y en USD
+            text: `Price (USD)`, // Y-axis title in USD
             color: '#e0e0e0'
           },
           ticks: {
             color: '#b0b0b0',
             callback: function(value) {
-                return formatPrice(value, currentCurrency); // Utilise formatPrice (en USD)
+                return formatPrice(value, currentCurrency); // Use formatPrice (in USD)
             }
           },
           grid: {
@@ -662,7 +675,7 @@ function renderChart(historicalData, assetName, ctx, currencyCode) {
                 label += ': ';
               }
               if (context.parsed.y !== null) {
-                label += formatPrice(context.parsed.y, currentCurrency); // Utilise formatPrice (en USD)
+                label += formatPrice(context.parsed.y, currentCurrency); // Use formatPrice (in USD)
               }
               return label;
             }
@@ -678,17 +691,17 @@ function renderChart(historicalData, assetName, ctx, currencyCode) {
   });
 }
 
-// --- Initialisation au chargement du DOM ---
+// --- Initialization on DOMContentLoaded ---
 document.addEventListener('DOMContentLoaded', () => {
-  handleNavigation(); // Initialise la navigation et la visibilité des sections
-  fetchData(); // Première récupération des données
+  handleNavigation(); // Initialize navigation and section visibility
+  fetchData(); // First data fetch
 
-  // Gestion du bouton d'authentification (désactivé comme demandé)
+  // Authentication button handler (disabled as requested)
   document.getElementById('authButton').addEventListener('click', () => {
     console.log("Login button clicked. Login functionality is currently disabled.");
   });
 
-  // Ajout de l'écouteur d'événement pour la barre de recherche
+  // Add event listener for the search bar
   const searchBar = document.querySelector('.search-bar');
   if (searchBar) {
     searchBar.addEventListener('input', (e) => {
@@ -696,13 +709,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Écouteur pour le bouton de fermeture du modal
+  // Listener for the modal close button
   const closeButton = document.querySelector('.close-button');
   if (closeButton) {
     closeButton.addEventListener('click', closeChartModal);
   }
 
-  // Fermer le modal si l'on clique en dehors du contenu (sur l'overlay)
+  // Close modal if clicked outside content (on overlay)
   const chartModal = document.getElementById('chartModal');
   if (chartModal) {
     chartModal.addEventListener('click', (e) => {
@@ -712,7 +725,42 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Interval de rafraîchissement des données (environ toutes les 23 minutes pour 250 requêtes FMP/jour)
-  setInterval(fetchData, 1382400); // 1382400 ms = 23.04 minutes
-});
+  // Table sorting handler (added from previous improvements)
+  document.querySelectorAll('table thead th[data-sort-key]').forEach(header => {
+    header.addEventListener('click', () => {
+      const tableId = header.closest('table').querySelector('tbody').id;
+      const sortKey = header.dataset.sortKey;
+      let sortDirection = header.dataset.sortDirection;
 
+      // Determine the new sort direction
+      if (sortDirection === 'asc') {
+        sortDirection = 'desc';
+      } else if (sortDirection === 'desc') {
+        sortDirection = 'asc'; // Revert to asc if already desc
+      } else {
+        sortDirection = 'asc'; // Default to asc
+      }
+
+      // Reset sort arrows for all headers in the same table
+      header.closest('thead').querySelectorAll('th[data-sort-key]').forEach(th => {
+        if (th !== header) {
+          th.dataset.sortDirection = 'none'; // Hide the arrow
+        }
+      });
+
+      // Update the direction for the clicked header
+      header.dataset.sortDirection = sortDirection;
+
+      // Apply sorting and update the list
+      if (tableId === 'stock-list') {
+        updateLists(allFetchedData.stocks, [], allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities, { tableId: tableId, key: sortKey, direction: sortDirection });
+      } else if (tableId === 'crypto-list') {
+        updateLists([], allFetchedData.cryptos, [], [], [], { tableId: tableId, key: sortKey, direction: sortDirection });
+      }
+    });
+  });
+
+
+  // Data refresh interval (approx. every 25 minutes)
+  setInterval(fetchData, 1500000); // 1500000 ms = 25 minutes
+});
