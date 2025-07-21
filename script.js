@@ -187,8 +187,15 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
     const price = asset.price ?? 0;
     const cap = asset.marketCap ?? 0;
     const isGain = change >= 0;
-    // Translated recommendations
-    const recommendation = change > 3 ? 'Buy' : change < -3 ? 'Sell' : 'Hold';
+    // Translated recommendations with emojis
+    let recommendation = '';
+    if (change > 3) {
+      recommendation = '📈 Buy';
+    } else if (change < -3) {
+      recommendation = '📉 Sell';
+    } else {
+      recommendation = '🤝 Hold';
+    }
     const changeClass = isGain ? 'gain' : 'loss';
 
     // Add data-symbol and data-type attribute for click
@@ -211,8 +218,15 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
     const price = asset.current_price ?? 0;
     const cap = asset.market_cap ?? 0;
     const isGain = change >= 0;
-    // Translated recommendations
-    const recommendation = change > 3 ? 'Buy' : change < -3 ? 'Sell' : 'Hold';
+    // Translated recommendations with emojis
+    let recommendation = '';
+    if (change > 3) {
+      recommendation = '📈 Buy';
+    } else if (change < -3) {
+      recommendation = '📉 Sell';
+    } else {
+      recommendation = '🤝 Hold';
+    }
     const changeClass = isGain ? 'gain' : 'loss';
 
     // Add data-symbol and data-type attribute for click (use asset.id for CoinGecko crypto)
@@ -239,7 +253,7 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
 
   recList.innerHTML = allAssetsForRecommendations.map(asset => {
     const change = asset.price_change_percentage_24h ?? asset.changesPercentage ?? 0;
-    // Translated recommendations
+    // Translated recommendations with emojis (already present)
     const recommendation = change > 3 ? '📈 Buy' : change < -3 ? '📉 Sell' : '🤝 Hold';
     return `<li>${asset.name}: ${recommendation}</li>`;
   }).join('');
@@ -555,3 +569,4 @@ document.addEventListener('DOMContentLoaded', () => {
   // Data refresh interval (very long here, adjust if needed)
   setInterval(fetchData, 1000000);
 });
+
