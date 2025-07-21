@@ -1,9 +1,9 @@
 async function fetchData() {
   const cryptoUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana,cardano,ripple,dogecoin,tron,polkadot,polygon,chainlink';
-  const stockUrl = 'https://financialmodelingprep.com/api/v3/quote/AAPL,NVDA,MSFT,TSLA,AMZN,META,GOOG,JPM,BAC,V?apikey=GKTmxyXWbKpCSjj67xYW9xf7pPK86ALi';
-const forexUrl = 'https://financialmodelingprep.com/api/v3/quote/EURUSD,USDJPY,GBPUSD,AUDUSD,USDCAD,USDCHF,USDCNY,USDHKD,USDSEK,USDSGD?apikey=GKTmxyXWbKpCSjj67xYW9xf7pPK86ALi';
-const indicesUrl = 'https://financialmodelingprep.com/api/v3/quote/^DJI,^IXIC,^GSPC,^FCHI,^GDAXI,^FTSE,^N225,^HSI,^SSMI,^BVSP?apikey=GKTmxyXWbKpCSjj67xYW9xf7pPK86ALi';
-const commoditiesUrl = 'https://financialmodelingprep.com/api/v3/quote/GCUSD,SIUSD,CLUSD,NGUSD,HGUSD,ALIUSD,PAUSD,PLUSD,KCUSD,SBUSD?apikey=GKTmxyXWbKpCSjj67xYW9xf7pPK86ALi';
+  const stockUrl = 'https://financialmodelingprep.com/api/v3/quote/AAPL,NVDA,MSFT,TSLA,AMZN,META,GOOG,JPM,BAC,V?apikey=86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS';
+const forexUrl = 'https://financialmodelingprep.com/api/v3/quote/EURUSD,USDJPY,GBPUSD,AUDUSD,USDCAD,USDCHF,USDCNY,USDHKD,USDSEK,USDSGD?apikey=86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS';
+const indicesUrl = 'https://financialmodelingprep.com/api/v3/quote/^DJI,^IXIC,^GSPC,^FCHI,^GDAXI,^FTSE,^N225,^HSI,^SSMI,^BVSP?apikey=86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS';
+const commoditiesUrl = 'https://financialmodelingprep.com/api/v3/quote/GCUSD,SIUSD,CLUSD,NGUSD,HGUSD,ALIUSD,PAUSD,PLUSD,KCUSD,SBUSD?apikey=86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS';
 
   try {
     const [cryptoRes, stockRes, forexRes, indicesRes, commoditiesRes] = await Promise.all([
