@@ -1,9 +1,9 @@
 async function fetchData() {
   const cryptoUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana,cardano,ripple,dogecoin,tron,polkadot,polygon,chainlink';
-  const stockUrl = 'https://financialmodelingprep.com/api/v3/quote/AAPL,NVDA,MSFT,TSLA,AMZN,META,GOOG,JPM,BAC,V';
-  const forexUrl = 'https://financialmodelingprep.com/api/v3/quote/EURUSD,USDJPY,GBPUSD,AUDUSD,USDCAD,USDCHF,USDCNY,USDHKD,USDSEK,USDSGD';
-  const indicesUrl = 'https://financialmodelingprep.com/api/v3/quote/^DJI,^IXIC,^GSPC,^FCHI,^GDAXI,^FTSE,^N225,^HSI,^SSMI,^BVSP';
-  const commoditiesUrl = 'https://financialmodelingprep.com/api/v3/quote/GCUSD,SIUSD,CLUSD,NGUSD,HGUSD,ALIUSD,PAUSD,PLUSD,KCUSD,SBUSD';
+  const stockUrl = 'https://financialmodelingprep.com/api/v3/quote/AAPL,NVDA,MSFT,TSLA,AMZN,META,GOOG,JPM,BAC,V?apikey=GKTmxyXWbKpCSjj67xYW9xf7pPK86ALi';
+const forexUrl = 'https://financialmodelingprep.com/api/v3/quote/EURUSD,USDJPY,GBPUSD,AUDUSD,USDCAD,USDCHF,USDCNY,USDHKD,USDSEK,USDSGD?apikey=GKTmxyXWbKpCSjj67xYW9xf7pPK86ALi';
+const indicesUrl = 'https://financialmodelingprep.com/api/v3/quote/^DJI,^IXIC,^GSPC,^FCHI,^GDAXI,^FTSE,^N225,^HSI,^SSMI,^BVSP?apikey=GKTmxyXWbKpCSjj67xYW9xf7pPK86ALi';
+const commoditiesUrl = 'https://financialmodelingprep.com/api/v3/quote/GCUSD,SIUSD,CLUSD,NGUSD,HGUSD,ALIUSD,PAUSD,PLUSD,KCUSD,SBUSD?apikey=GKTmxyXWbKpCSjj67xYW9xf7pPK86ALi';
 
   try {
     const [cryptoRes, stockRes, forexRes, indicesRes, commoditiesRes] = await Promise.all([
@@ -20,9 +20,9 @@ async function fetchData() {
     const indicesData = await indicesRes.json();
     const commoditiesData = await commoditiesRes.json();
 
-    if (!Array.isArray(stockData) || !Array.isArray(cryptoData)) {
+  if (!Array.isArray(stockData) || !Array.isArray(cryptoData)) {
       throw new Error("Données de bourse ou crypto invalides");
-    }
+    }  
 
     updateLists(stockData, cryptoData, forexData, indicesData, commoditiesData);
     updateIndices([...indicesData, ...commoditiesData]);
@@ -136,7 +136,8 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
         <td>${recommendation}</td>
       </tr>
     `;
- const isCrypto = ['BTC', 'ETH', 'SOL', 'ADA', 'XRP', 'DOGE', 'TRX', 'DOT', 'MATIC', 'LINK'].includes(asset.symbol?.toUpperCase());
+
+    const isCrypto = ['BTC', 'ETH', 'SOL', 'ADA', 'XRP', 'DOGE', 'TRX', 'DOT', 'MATIC', 'LINK'].includes(asset.symbol?.toUpperCase());
     const isForex = asset.symbol?.length === 6 && /^[A-Z]{6}$/.test(asset.symbol);
     const isIndex = asset.symbol?.startsWith('^');
     const isCommodity = ['GCUSD','SIUSD','CLUSD','NGUSD','HGUSD','ALIUSD','PAUSD','PLUSD','KCUSD','SBUSD'].includes(asset.symbol);
@@ -149,7 +150,7 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
   });
 
   recList.innerHTML = allAssets.map(asset => {
-    const change = asset.price_change_percentage_24h ?? asset.changesPercentage;
+    const change = asset.price_change_percentage_24h ?? asset.changesPercentage ?? 0;
     const recommendation = change > 3 ? '📈 Acheter' : change < -3 ? '📉 Vendre' : '🤝 Conserver';
     return `<li>${asset.name}: ${recommendation}</li>`;
   }).join('');
@@ -157,12 +158,16 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
 
 function updateIndices(data) {
   const list = document.getElementById('indices-list');
+  if (!list) return;
+
   list.innerHTML = data.map(item => {
     const change = item.changesPercentage?.toFixed(2);
     const cls = change >= 0 ? 'gain' : 'loss';
     return `<li>${item.name}: <span class="${cls}">${change}%</span></li>`;
   }).join('');
 }
+
+
 
 function handleNavigation() {
   document.querySelectorAll('.nav-link').forEach(link => {
