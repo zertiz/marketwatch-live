@@ -14,7 +14,7 @@ let currentChartName = '';
 let currentCurrency = 'USD'; // Devise par défaut, fixée à USD
 
 // --- Votre clé API Financial Modeling Prep (FMP) ---
-const FMP_API_KEY = '86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS';
+const FMP_API_KEY = '8C6eqw9VAcDUFxs1UERgRgY64pNe9xYd';
 
 // --- Fonctions Utilitaires ---
 
