@@ -65,8 +65,21 @@ async function fetchNews() {
         const link = item.querySelector('link')?.textContent ?? '';
         const pubDate = new Date(item.querySelector('pubDate')?.textContent ?? '').toLocaleDateString();
         const description = item.querySelector('description')?.textContent ?? '';
-        const imageMatch = description.match(/<img.*?src="(.*?)"/);
-        const imageUrl = imageMatch ? imageMatch[1] : 'https://via.placeholder.com/150';
+
+        // Détection image via <img src="...">
+        let imageUrl = '';
+        const imgMatch = description.match(/<img.*?src=["'](.*?)["']/i);
+        if (imgMatch) {
+          imageUrl = imgMatch[1];
+        } else {
+          // Tentative de récupération depuis <media:content> ou <enclosure>
+          const media = item.querySelector('media\\:content, enclosure');
+          if (media && media.getAttribute('url')) {
+            imageUrl = media.getAttribute('url');
+          } else {
+            imageUrl = 'https://via.placeholder.com/150';
+          }
+        }
 
         html += `
           <div class="news-card">
