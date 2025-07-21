@@ -26,18 +26,20 @@ let userWatchlist = new Set(); // Stocke les symboles/IDs des éléments dans la
 
 // --- Initialisation Firebase ---
 // Ces variables sont fournies par l'environnement Canvas
-// Assurez-vous que __firebase_config est un objet JSON valide
-const firebaseConfig = (typeof __firebase_config !== 'undefined' && __firebase_config) ? JSON.parse(__firebase_config) : null;
-const initialAuthToken = (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) ? __initial_auth_token : null;
+// Assurez-vous que __firebase_config est un objet JSON valide et non la chaîne "null"
+const firebaseConfig = (typeof __firebase_config !== 'undefined' && __firebase_config && __firebase_config !== 'null') ? JSON.parse(__firebase_config) : null;
+const initialAuthToken = (typeof __initial_auth_token !== 'undefined' && __initial_auth_token && __initial_auth_token !== 'null') ? __initial_auth_token : null;
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
 
 async function initializeFirebase() {
-  if (!firebaseConfig) {
-    console.error("Firebase config is missing. Cannot initialize Firebase.");
+  // Vérifie si la configuration Firebase est manquante ou vide
+  if (!firebaseConfig || Object.keys(firebaseConfig).length === 0) {
+    const errorMsg = "Firebase config is missing or empty. Cannot initialize Firebase. Ensure __firebase_config is set in your environment.";
+    console.error(errorMsg);
     document.getElementById('authButton').textContent = 'Login Error (Config Missing)';
-    document.getElementById('watchlist-loading').textContent = 'Error: Firebase config missing.';
-    return;
+    document.getElementById('watchlist-loading').textContent = `Error: ${errorMsg}`;
+    return; // Arrête l'initialisation si la config est mauvaise
   }
 
   try {
@@ -48,12 +50,12 @@ async function initializeFirebase() {
     onAuthStateChanged(auth, async (user) => {
       if (user) {
         userId = user.uid;
-        console.log("Utilisateur connecté:", userId);
+        console.log("User logged in:", userId);
         document.getElementById('authButton').textContent = `Logout (${userId.substring(0, 6)}...)`;
         setupWatchlistListener(); // Écoute les changements de la watchlist
       } else {
         userId = null;
-        console.log("Utilisateur déconnecté.");
+        console.log("User logged out.");
         document.getElementById('authButton').textContent = 'Login';
         document.getElementById('my-watchlist').innerHTML = '<li id="watchlist-loading">Login to view your watchlist.</li>';
         userWatchlist.clear(); // Vide la watchlist en mémoire
@@ -64,14 +66,17 @@ async function initializeFirebase() {
 
     // Tente de se connecter avec le jeton fourni ou de manière anonyme
     if (initialAuthToken) {
+      console.log("Attempting to sign in with custom token...");
       await signInWithCustomToken(auth, initialAuthToken);
     } else {
+      console.log("Attempting to sign in anonymously...");
       await signInAnonymously(auth);
     }
   } catch (error) {
-    console.error("Erreur d'initialisation de Firebase ou d'authentification:", error);
+    const errorMsg = `Firebase initialization or authentication error: ${error.message}`;
+    console.error(errorMsg, error);
     document.getElementById('authButton').textContent = 'Login Error';
-    document.getElementById('watchlist-loading').textContent = 'Error loading watchlist. Please try again.';
+    document.getElementById('watchlist-loading').textContent = `Error: ${errorMsg}. Check console.`;
   }
 }
 
@@ -79,8 +84,8 @@ async function initializeFirebase() {
 
 // Chemin de la collection de la watchlist pour l'utilisateur actuel
 function getWatchlistCollectionRef() {
-  if (!userId) {
-    console.error("User not authenticated for watchlist operations.");
+  if (!userId || !db) { // Vérifie si db est aussi initialisé
+    console.error("User not authenticated or Firestore not initialized for watchlist operations.");
     return null;
   }
   // Utilise le chemin recommandé pour les données privées de l'utilisateur
@@ -108,7 +113,7 @@ function setupWatchlistListener() {
     // Rafraîchit les tableaux principaux pour mettre à jour l'état des boutons
     updateLists(allFetchedData.stocks, allFetchedData.cryptos, allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities);
   }, (error) => {
-    console.error("Erreur d'écoute de la watchlist:", error);
+    console.error("Error listening to watchlist:", error);
     document.getElementById('my-watchlist').innerHTML = '<li>Error loading your watchlist. Please check console.</li>';
   });
 }
@@ -116,7 +121,6 @@ function setupWatchlistListener() {
 // Ajoute un élément à la watchlist
 async function addToWatchlist(asset) {
   if (!userId) {
-    // Utiliser une alerte personnalisée ou un message dans l'UI au lieu de window.alert
     console.warn("Please login to add items to your watchlist.");
     // Vous pouvez afficher un message temporaire dans l'UI ici
     return;
@@ -775,6 +779,12 @@ async function fetchHistoricalData(symbol, type, period) {
 
   try {
     const response = await fetch(url);
+    if (!response.ok) { // Check if response status is not 2xx
+        const errorText = await response.text();
+        console.error(`API error for historical data (${type}, ${symbol}, ${period}): Status ${response.status} - ${errorText}`);
+        // Throw an error to be caught by showChartModal
+        throw new Error(`Failed to fetch historical data: ${response.statusText || 'Unknown error'}. Check API key and console.`);
+    }
     const data = await response.json();
 
     if (type === 'crypto' && data[dataPath]) {
@@ -793,7 +803,8 @@ async function fetchHistoricalData(symbol, type, period) {
     }
   } catch (error) {
     console.error(`Error fetching historical data for ${symbol} (${type}):`, error);
-    return [];
+    // Re-throw the error to be handled by showChartModal
+    throw error;
   }
 }
 
@@ -883,13 +894,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Gestion du bouton d'authentification
   document.getElementById('authButton').addEventListener('click', async () => {
-    if (auth && auth.currentUser) { // Vérifie si auth est défini et si un utilisateur est connecté
+    if (!auth) { // Si l'objet auth n'est pas initialisé
+      console.error("Firebase Auth object is not initialized. Cannot perform login/logout. Attempting re-initialization.");
+      initializeFirebase(); // Tente de réinitialiser Firebase
+      return;
+    }
+    if (auth.currentUser) { // Si un utilisateur est déjà connecté
       await signOut(auth);
-    } else if (auth) { // Si auth est défini mais pas d'utilisateur connecté
+    } else { // Si aucun utilisateur n'est connecté
       await signInAnonymously(auth);
-    } else {
-        console.error("Firebase Auth not initialized. Cannot perform login/logout.");
-        // Optionnel: Afficher un message à l'utilisateur
     }
   });
 
