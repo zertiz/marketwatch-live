@@ -18,6 +18,13 @@ async function fetchData() {
   const indicesUrl = 'https://financialmodelingprep.com/api/v3/quote/%5EDJI,%5EIXIC,%5EGSPC,%5EFCHI,%5EGDAXI,%5EFTSE,%5EN225,%5EHSI,%5ESSMI,%5EBVSP?apikey=86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS';
   const commoditiesUrl = 'https://financialmodelingprep.com/api/v3/quote/GCUSD,SIUSD,CLUSD,NGUSD,HGUSD,ALIUSD,PAUSD,PLUSD,KCUSD,SBUSD?apikey=86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS';
 
+  // Display loading messages for main tables
+  document.getElementById('stock-list').innerHTML = '<tr><td colspan="5">Loading stock data...</td></tr>';
+  document.getElementById('crypto-list').innerHTML = '<tr><td colspan="5">Loading crypto data...</td></tr>';
+  document.getElementById('indices-list').innerHTML = '<li>Loading market indices...</li>';
+  document.getElementById('recommendations').innerHTML = '<li>Loading recommendations...</li>';
+
+
   try {
     const [cryptoRes, stockRes, forexRes, indicesRes, commoditiesRes] = await Promise.all([
       fetch(cryptoUrl),
@@ -26,6 +33,26 @@ async function fetchData() {
       fetch(indicesUrl),
       fetch(commoditiesUrl)
     ]);
+
+    // Check for API key errors (403 Forbidden) or 404 Not Found
+    if (!stockRes.ok || !forexRes.ok || !indicesRes.ok || !commoditiesRes.ok) {
+        let errorMessage = "Error fetching data from Financial Modeling Prep. ";
+        if (stockRes.status === 403 || forexRes.status === 403 || indicesRes.status === 403 || commoditiesRes.status === 403) {
+            errorMessage += "Your API key might be invalid or usage limits exceeded (403 Forbidden).";
+        } else if (indicesRes.status === 404) {
+            errorMessage += "Indices URL might be incorrect (404 Not Found).";
+        } else {
+            errorMessage += `Status: ${stockRes.status || forexRes.status || indicesRes.status || commoditiesRes.status}`;
+        }
+        console.error(errorMessage);
+        // Clear tables and show error
+        document.getElementById('stock-list').innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
+        document.getElementById('crypto-list').innerHTML = `<tr><td colspan="5" class="error-message">Loading crypto data...</td></tr>`; // Crypto might still load
+        document.getElementById('indices-list').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
+        document.getElementById('recommendations').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
+        // Proceed with potentially empty data for other parts
+    }
+
 
     // Retrieve JSON data
     let cryptoData = await cryptoRes.json();
@@ -80,6 +107,11 @@ async function fetchData() {
 
   } catch (error) {
     console.error("Error loading data:", error);
+    const genericErrorMessage = "An unexpected error occurred while loading data.";
+    document.getElementById('stock-list').innerHTML = `<tr><td colspan="5" class="error-message">${genericErrorMessage}</td></tr>`;
+    document.getElementById('crypto-list').innerHTML = `<tr><td colspan="5" class="error-message">${genericErrorMessage}</td></tr>`;
+    document.getElementById('indices-list').innerHTML = `<li><span class="error-message">${genericErrorMessage}</span></li>`;
+    document.getElementById('recommendations').innerHTML = `<li><span class="error-message">${genericErrorMessage}</span></li>`;
   }
 }
 
@@ -158,7 +190,7 @@ async function fetchNews() {
     newsContainer.innerHTML = html || '<p>No news found.</p>';
   } catch (error) {
     console.error("Error loading news:", error);
-    newsContainer.innerHTML = '<p>Error loading news.</p>';
+    newsContainer.innerHTML = '<p class="error-message">Error loading news. Please check your internet connection or try again later.</p>';
   }
 }
 
@@ -182,65 +214,77 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
     ...(Array.isArray(commodities) ? commodities : [])
   ];
 
-  allNonCryptoAssets.forEach(asset => {
-    const change = asset.changesPercentage ?? 0;
-    const price = asset.price ?? 0;
-    const cap = asset.marketCap ?? 0;
-    const isGain = change >= 0;
-    // Translated recommendations with emojis
-    let recommendation = '';
-    if (change > 3) {
-      recommendation = '📈 Buy';
-    } else if (change < -3) {
-      recommendation = '📉 Sell';
-    } else {
-      recommendation = '🤝 Hold';
-    }
-    const changeClass = isGain ? 'gain' : 'loss';
+  if (allNonCryptoAssets.length === 0) {
+      stockListTableBody.innerHTML = '<tr><td colspan="5">No stock, forex, indices, or commodities data available.</td></tr>';
+  } else {
+      allNonCryptoAssets.forEach(asset => {
+        const change = asset.changesPercentage ?? 0;
+        const price = asset.price ?? 0;
+        const cap = asset.marketCap ?? 0;
+        const isGain = change >= 0;
+        // Translated recommendations with emojis
+        let recommendation = '';
+        if (change > 3) {
+          recommendation = '📈 Buy';
+        } else if (change < -3) {
+          recommendation = '📉 Sell';
+        } else {
+          recommendation = '🤝 Hold';
+        }
+        const changeClass = isGain ? 'gain' : 'loss';
+        const changeArrow = isGain ? '▲' : '▼'; // Arrow indicator
 
-    // Add data-symbol and data-type attribute for click
-    // Use asset.symbol for FMP, and a generic type like 'stock_fmp' to distinguish them
-    const row = `
-      <tr onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')">
-        <td>${asset.name}</td>
-        <td>$${price.toLocaleString()}</td>
-        <td class="${changeClass}">${change.toFixed(2)}%</td>
-        <td>${cap ? '$' + (cap / 1e9).toFixed(1) + 'B' : 'N/A'}</td>
-        <td>${recommendation}</td>
-      </tr>
-    `;
-    stockListTableBody.innerHTML += row;
-  });
+        // Add data-symbol and data-type attribute for click
+        // Use asset.symbol for FMP, and a generic type like 'stock_fmp' to distinguish them
+        const row = `
+          <tr onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')">
+            <td>${asset.name}</td>
+            <td>$${price.toLocaleString()}</td>
+            <td class="${changeClass}">${change.toFixed(2)}% ${changeArrow}</td>
+            <td>${cap ? '$' + (cap / 1e9).toFixed(1) + 'B' : 'N/A'}</td>
+            <td>${recommendation}</td>
+          </tr>
+        `;
+        stockListTableBody.innerHTML += row;
+      });
+  }
+
 
   // Data for Crypto table
-  (Array.isArray(cryptos) ? cryptos : []).forEach(asset => {
-    const change = asset.price_change_percentage_24h ?? 0;
-    const price = asset.current_price ?? 0;
-    const cap = asset.market_cap ?? 0;
-    const isGain = change >= 0;
-    // Translated recommendations with emojis
-    let recommendation = '';
-    if (change > 3) {
-      recommendation = '📈 Buy';
-    } else if (change < -3) {
-      recommendation = '📉 Sell';
-    } else {
-      recommendation = '🤝 Hold';
-    }
-    const changeClass = isGain ? 'gain' : 'loss';
+  if (Array.isArray(cryptos) && cryptos.length === 0) {
+      cryptoListTableBody.innerHTML = '<tr><td colspan="5">No cryptocurrency data available.</td></tr>';
+  } else {
+      (Array.isArray(cryptos) ? cryptos : []).forEach(asset => {
+        const change = asset.price_change_percentage_24h ?? 0;
+        const price = asset.current_price ?? 0;
+        const cap = asset.market_cap ?? 0;
+        const isGain = change >= 0;
+        // Translated recommendations with emojis
+        let recommendation = '';
+        if (change > 3) {
+          recommendation = '📈 Buy';
+        } else if (change < -3) {
+          recommendation = '📉 Sell';
+        } else {
+          recommendation = '🤝 Hold';
+        }
+        const changeClass = isGain ? 'gain' : 'loss';
+        const changeArrow = isGain ? '▲' : '▼'; // Arrow indicator
 
-    // Add data-symbol and data-type attribute for click (use asset.id for CoinGecko crypto)
-    const row = `
-      <tr onclick="showChartModal('${asset.id}', 'crypto', '${asset.name}')">
-        <td>${asset.name}</td>
-        <td>$${price.toLocaleString()}</td>
-        <td class="${changeClass}">${change.toFixed(2)}%</td>
-        <td>${cap ? '$' + (cap / 1e9).toFixed(1) + 'B' : 'N/A'}</td>
-        <td>${recommendation}</td>
-      </tr>
-    `;
-    cryptoListTableBody.innerHTML += row;
-  });
+        // Add data-symbol and data-type attribute for click (use asset.id for CoinGecko crypto)
+        const row = `
+          <tr onclick="showChartModal('${asset.id}', 'crypto', '${asset.name}')">
+            <td>${asset.name}</td>
+            <td>$${price.toLocaleString()}</td>
+            <td class="${changeClass}">${change.toFixed(2)}% ${changeArrow}</td>
+            <td>${cap ? '$' + (cap / 1e9).toFixed(1) + 'B' : 'N/A'}</td>
+            <td>${recommendation}</td>
+          </tr>
+        `;
+        cryptoListTableBody.innerHTML += row;
+      });
+  }
+
 
   // Data for Recommendations sidebar
   const allAssetsForRecommendations = [
@@ -251,12 +295,16 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
     ...(Array.isArray(commodities) ? commodities : [])
   ];
 
-  recList.innerHTML = allAssetsForRecommendations.map(asset => {
-    const change = asset.price_change_percentage_24h ?? asset.changesPercentage ?? 0;
-    // Translated recommendations with emojis (already present)
-    const recommendation = change > 3 ? '📈 Buy' : change < -3 ? '📉 Sell' : '🤝 Hold';
-    return `<li>${asset.name}: ${recommendation}</li>`;
-  }).join('');
+  if (allAssetsForRecommendations.length === 0) {
+      recList.innerHTML = '<li>No recommendations available.</li>';
+  } else {
+      recList.innerHTML = allAssetsForRecommendations.map(asset => {
+        const change = asset.price_change_percentage_24h ?? asset.changesPercentage ?? 0;
+        // Translated recommendations with emojis (already present)
+        const recommendation = change > 3 ? '📈 Buy' : change < -3 ? '📉 Sell' : '🤝 Hold';
+        return `<li>${asset.name}: ${recommendation}</li>`;
+      }).join('');
+  }
 }
 
 // Function to update the indices list in the sidebar
@@ -267,14 +315,20 @@ function updateIndices(data) {
   // Check if data is an array before processing
   if (!Array.isArray(data)) {
     console.error("Data for updateIndices is not an array.", data);
+    list.innerHTML = '<li>No market indices available.</li>'; // Display message if no data
     return;
   }
-
-  list.innerHTML = data.map(item => {
-    const change = item.changesPercentage?.toFixed(2);
-    const cls = change >= 0 ? 'gain' : 'loss';
-    return `<li>${item.name}: <span class="${cls}">${change}%</span></li>`;
-  }).join('');
+  
+  if (data.length === 0) {
+      list.innerHTML = '<li>No market indices available.</li>';
+  } else {
+      list.innerHTML = data.map(item => {
+        const change = item.changesPercentage?.toFixed(2);
+        const cls = change >= 0 ? 'gain' : 'loss';
+        const changeArrow = change >= 0 ? '▲' : '▼'; // Arrow indicator
+        return `<li>${item.name}: <span class="${cls}">${change}% ${changeArrow}</span></li>`;
+      }).join('');
+  }
 }
 
 // Function to filter and display search results
@@ -391,20 +445,63 @@ function handleNavigation() {
 
 // Variables for the chart
 let myChart; // To store the Chart.js instance
+let currentChartSymbol = ''; // Stores the symbol of the currently displayed asset
+let currentChartType = '';   // Stores the type of the currently displayed asset
+let currentChartName = '';   // Stores the name of the currently displayed asset
 
 // Function to display the chart modal
-async function showChartModal(symbol, type, name) {
+async function showChartModal(symbol, type, name, period = '30') { // Added period parameter
   const modal = document.getElementById('chartModal');
   const chartTitle = document.getElementById('chartTitle');
   const chartLoading = document.getElementById('chartLoading');
   const chartError = document.getElementById('chartError');
   const chartCanvas = document.getElementById('historicalChart');
   const ctx = chartCanvas.getContext('2d');
+  const chartPeriodSelector = document.getElementById('chartPeriodSelector'); // Get the period selector container
+
+  // Store current asset details for period changes
+  currentChartSymbol = symbol;
+  currentChartType = type;
+  currentChartName = name;
 
   chartTitle.textContent = `Price Evolution Chart for ${name}`; // Translated chart title
   chartLoading.classList.remove('hidden');
   chartError.classList.add('hidden');
   modal.classList.remove('hidden'); // Show modal
+
+  // Create period buttons if they don't exist
+  if (!chartPeriodSelector.hasChildNodes()) {
+      const periods = {
+          '7d': '7 Days',
+          '30d': '30 Days',
+          '90d': '3 Months',
+          '365d': '1 Year',
+          'max': 'Max'
+      };
+      for (const p in periods) {
+          const button = document.createElement('button');
+          button.textContent = periods[p];
+          button.dataset.period = p;
+          button.addEventListener('click', () => {
+              // Remove active class from all buttons
+              document.querySelectorAll('.chart-period-selector button').forEach(btn => btn.classList.remove('active'));
+              // Add active class to the clicked button
+              button.classList.add('active');
+              // Reload chart with new period
+              showChartModal(currentChartSymbol, currentChartType, currentChartName, p);
+          });
+          chartPeriodSelector.appendChild(button);
+      }
+  }
+  // Set active class for the current period
+  document.querySelectorAll('.chart-period-selector button').forEach(btn => {
+      if (btn.dataset.period === period) {
+          btn.classList.add('active');
+      } else {
+          btn.classList.remove('active');
+      }
+  });
+
 
   // Destroy old chart if it exists
   if (myChart) {
@@ -412,7 +509,7 @@ async function showChartModal(symbol, type, name) {
   }
 
   try {
-    const historicalData = await fetchHistoricalData(symbol, type);
+    const historicalData = await fetchHistoricalData(symbol, type, period); // Pass period to fetchHistoricalData
 
     if (historicalData && historicalData.length > 0) {
       renderChart(historicalData, name, ctx);
@@ -436,10 +533,12 @@ function closeChartModal() {
   if (myChart) {
     myChart.destroy(); // Destroy chart to free up resources
   }
+  // Clear period selector buttons
+  document.getElementById('chartPeriodSelector').innerHTML = '';
 }
 
 // Function to fetch historical data
-async function fetchHistoricalData(symbol, type) {
+async function fetchHistoricalData(symbol, type, period) { // Added period parameter
   const apiKey = '86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS'; // Your FMP API key
   let url = '';
   let dataPath = ''; // To know where price data is in the response
@@ -447,12 +546,46 @@ async function fetchHistoricalData(symbol, type) {
   if (type === 'crypto') {
     // CoinGecko uses a unique ID for each crypto (e.g., 'bitcoin')
     // The 'symbol' passed here is already the CoinGecko ID
-    url = `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=30`; // 30 days of data
+    // CoinGecko periods are '1', '7', '14', '30', '90', '180', '365', 'max'
+    let days = period;
+    if (period === '7d') days = '7';
+    else if (period === '30d') days = '30';
+    else if (period === '90d') days = '90'; // Use '90' for 3 months
+    else if (period === '365d') days = '365'; // Use '365' for 1 year
+    else if (period === 'max') days = 'max';
+    else days = '30'; // Default to 30 days
+
+    url = `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=${days}`;
     dataPath = 'prices'; // Price data is under the 'prices' key
   } else {
     // For stocks, forex, indices, commodities (Financial Modeling Prep)
     // Using 'historical-price-full' endpoint
-    url = `https://financialmodelingprep.com/api/v3/historical-price-full/${symbol}?apikey=${apiKey}`;
+    // FMP periods can be more complex, often requiring 'from' and 'to' dates
+    // For simplicity, we'll fetch a larger range and filter locally if needed,
+    // or use FMP's period parameters if available and simple.
+    // FMP's historical-price-full endpoint doesn't directly support 'days' parameter like CoinGecko.
+    // We'll fetch a large enough range (e.g., 5 years) and filter in renderChart.
+    // Or, if a specific period is needed, we'd calculate start/end dates.
+    
+    let endDate = new Date();
+    let startDate = new Date();
+
+    if (period === '7d') {
+        startDate.setDate(endDate.getDate() - 7);
+    } else if (period === '30d') {
+        startDate.setDate(endDate.getDate() - 30);
+    } else if (period === '90d') {
+        startDate.setMonth(endDate.getMonth() - 3);
+    } else if (period === '365d') {
+        startDate.setFullYear(endDate.getFullYear() - 1);
+    } else if (period === 'max') {
+        startDate.setFullYear(endDate.getFullYear() - 5); // Fetch 5 years for 'max'
+    } else {
+        startDate.setDate(endDate.getDate() - 30); // Default to 30 days
+    }
+
+    const formatDate = (date) => date.toISOString().split('T')[0];
+    url = `https://financialmodelingprep.com/api/v3/historical-price-full/${symbol}?from=${formatDate(startDate)}&to=${formatDate(endDate)}&apikey=${apiKey}`;
     dataPath = 'historical'; // Historical data is under the 'historical' key
   }
 
@@ -495,10 +628,11 @@ function renderChart(historicalData, assetName, ctx) {
       datasets: [{
         label: `Price of ${assetName} (USD)`, // Translated chart label
         data: prices,
-        borderColor: '#007bff',
-        backgroundColor: 'rgba(0, 123, 255, 0.1)',
-        tension: 0.1,
-        fill: true
+        borderColor: '#61dafb', // Couleur du graphique bleu clair
+        backgroundColor: 'rgba(97, 218, 251, 0.1)', // Fond du graphique transparent
+        tension: 0.2, // Légère courbure pour un aspect plus doux
+        fill: true,
+        pointRadius: 0 // Cacher les points individuels
       }]
     },
     options: {
@@ -508,13 +642,30 @@ function renderChart(historicalData, assetName, ctx) {
         x: {
           title: {
             display: true,
-            text: 'Date' // Translated axis title
+            text: 'Date', // Translated axis title
+            color: '#e0e0e0' // Couleur du texte de l'axe
+          },
+          ticks: {
+            color: '#b0b0b0' // Couleur des étiquettes de l'axe
+          },
+          grid: {
+            color: '#3a3a3a' // Couleur de la grille
           }
         },
         y: {
           title: {
             display: true,
-            text: 'Price (USD)' // Translated axis title
+            text: 'Price (USD)', // Translated axis title
+            color: '#e0e0e0' // Couleur du texte de l'axe
+          },
+          ticks: {
+            color: '#b0b0b0', // Couleur des étiquettes de l'axe
+            callback: function(value) {
+                return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+            }
+          },
+          grid: {
+            color: '#3a3a3a' // Couleur de la grille
           }
         }
       },
@@ -532,13 +683,18 @@ function renderChart(historicalData, assetName, ctx) {
               return label;
             }
           }
+        },
+        legend: {
+            labels: {
+                color: '#e0e0e0' // Couleur du texte de la légende
+            }
         }
       }
     }
   });
 }
 
-// Initialize navigation and data fetching on DOM load
+// Initialisation de la navigation et récupération des données au chargement du DOM
 document.addEventListener('DOMContentLoaded', () => {
   handleNavigation(); // Initializes navigation and section visibility
   fetchData(); // Initial data fetch
@@ -566,7 +722,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Data refresh interval (very long here, adjust if needed)
+  // Interval de rafraîchissement des données (très long ici, ajuster si nécessaire)
   setInterval(fetchData, 1000000);
 });
 

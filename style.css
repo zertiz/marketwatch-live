@@ -4,11 +4,13 @@ body {
   margin: 0;
   padding: 0;
   color: #e0e0e0; /* Texte clair */
+  line-height: 1.6; /* Améliore la lisibilité */
 }
 
 .top-bar {
   background-color: #2a2a2a; /* Barre supérieure plus foncée */
   display: flex;
+  flex-wrap: wrap; /* Permet aux éléments de passer à la ligne */
   justify-content: space-between;
   align-items: center;
   padding: 15px 30px;
@@ -22,12 +24,22 @@ body {
   font-size: 24px;
   font-weight: bold;
   color: #61dafb; /* Couleur du logo (bleu clair) */
+  margin-bottom: 5px; /* Espace sous le logo sur mobile */
+}
+
+.main-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center; /* Centre les liens de navigation */
+  margin-top: 5px;
 }
 
 .main-nav a {
   text-decoration: none;
   color: #b0b0b0; /* Liens de navigation clairs */
-  margin: 0 15px;
+  margin: 0 10px; /* Réduit la marge pour plus d'espace */
+  padding: 5px 0;
+  white-space: nowrap; /* Empêche les liens de se casser */
 }
 
 .main-nav a.active {
@@ -38,6 +50,9 @@ body {
 .user-actions {
   display: flex;
   align-items: center;
+  margin-top: 10px; /* Espace au-dessus sur mobile */
+  width: 100%; /* Prend toute la largeur sur mobile */
+  justify-content: center; /* Centre les actions utilisateur */
 }
 
 .search-bar {
@@ -47,6 +62,8 @@ body {
   background-color: #333; /* Fond de recherche sombre */
   color: #e0e0e0; /* Texte de recherche clair */
   margin-right: 10px;
+  flex-grow: 1; /* Permet à la barre de recherche de s'étendre */
+  max-width: 300px; /* Limite la largeur sur les grands écrans */
 }
 
 .auth-btn {
@@ -56,16 +73,19 @@ body {
   padding: 8px 16px;
   border-radius: 20px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .container {
   display: flex;
+  flex-direction: row; /* Par défaut en ligne */
   padding: 20px;
   gap: 20px;
 }
 
 .sidebar {
   width: 250px;
+  min-width: 200px; /* Largeur minimale pour la barre latérale */
   background: #2a2a2a; /* Barre latérale sombre */
   padding: 20px;
   border-radius: 12px;
@@ -130,15 +150,17 @@ th, td {
   text-align: left;
   cursor: pointer;
   color: #e0e0e0; /* Texte de tableau clair */
+  font-size: 14px; /* Taille de police par défaut pour les cellules */
 }
 
 th {
   background-color: #333; /* Fond d'en-tête de tableau sombre */
   font-weight: bold;
-  font-size: 14px;
+  font-size: 14px; /* Taille de police pour les en-têtes */
   color: #b0b0b0; /* Texte d'en-tête clair */
 }
 
+/* Styles pour les indicateurs de gain/perte */
 .gain {
   color: #00ff00; /* Vert vif pour les gains */
   font-weight: bold;
@@ -149,6 +171,7 @@ th {
   font-weight: bold;
 }
 
+/* Utilitaires */
 .hidden {
   display: none;
 }
@@ -301,6 +324,35 @@ th {
   font-weight: bold;
 }
 
+/* Styles pour les sélecteurs de période du graphique */
+.chart-period-selector {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.chart-period-selector button {
+  background-color: #333;
+  color: #61dafb;
+  border: 1px solid #444;
+  padding: 8px 15px;
+  margin: 0 5px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  font-size: 0.9em;
+}
+
+.chart-period-selector button:hover {
+  background-color: #444;
+}
+
+.chart-period-selector button.active {
+  background-color: #61dafb;
+  color: #1a1a1a;
+  font-weight: bold;
+}
+
+
 /* Utilitaires */
 .hidden {
   display: none;
@@ -310,4 +362,144 @@ th {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-20px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Media Queries pour le Responsive Design --- */
+
+/* Pour les écrans de moins de 1024px (tablettes et petits ordinateurs) */
+@media (max-width: 1024px) {
+  .top-bar {
+    padding: 10px 20px;
+  }
+
+  .main-nav a {
+    margin: 0 8px;
+    font-size: 0.95em;
+  }
+
+  .container {
+    flex-direction: column; /* La barre latérale passe au-dessus du contenu principal */
+    padding: 15px;
+  }
+
+  .sidebar {
+    width: 100%; /* La barre latérale prend toute la largeur */
+    margin-bottom: 20px; /* Espace sous la barre latérale */
+  }
+
+  .main-content {
+    width: 100%;
+  }
+
+  th, td {
+    padding: 10px; /* Réduit le padding des cellules de tableau */
+    font-size: 13px; /* Réduit la taille de police des cellules */
+  }
+
+  .news-card {
+    flex-direction: column; /* Les cartes de nouvelles deviennent verticales */
+    align-items: center;
+    text-align: center;
+  }
+
+  .news-thumb {
+    width: 100%; /* L'image prend toute la largeur */
+    height: auto; /* Hauteur automatique */
+    max-height: 150px; /* Limite la hauteur */
+    margin-bottom: 10px;
+  }
+
+  .news-content {
+    width: 100%;
+  }
+
+  .chart-container {
+    height: 300px; /* Réduit la hauteur du graphique sur les petits écrans */
+  }
+}
+
+/* Pour les écrans de moins de 768px (smartphones) */
+@media (max-width: 768px) {
+  .top-bar {
+    flex-direction: column; /* Les éléments de la barre supérieure s'empilent */
+    align-items: center;
+    padding: 10px 15px;
+  }
+
+  .logo {
+    margin-bottom: 10px;
+  }
+
+  .main-nav {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  .main-nav a {
+    margin: 0 5px;
+    font-size: 0.9em;
+  }
+
+  .user-actions {
+    flex-direction: column; /* La barre de recherche et le bouton s'empilent */
+    width: 100%;
+  }
+
+  .search-bar {
+    width: 100%;
+    margin-right: 0;
+    margin-bottom: 10px;
+  }
+
+  .auth-btn {
+    width: 100%;
+  }
+
+  .container {
+    padding: 10px;
+  }
+
+  .card {
+    padding: 15px;
+  }
+
+  h2 {
+    font-size: 1.5em; /* Réduit la taille des titres de section */
+  }
+
+  th, td {
+    padding: 8px; /* Encore moins de padding */
+    font-size: 12px; /* Encore plus petite taille de police */
+  }
+
+  .chart-container {
+    height: 250px; /* Hauteur encore plus réduite pour le graphique */
+  }
+
+  .chart-period-selector button {
+    padding: 6px 10px;
+    font-size: 0.8em;
+    margin: 0 3px;
+  }
+}
+
+/* Pour les très petits écrans (moins de 480px) */
+@media (max-width: 480px) {
+  .main-nav a {
+    font-size: 0.8em; /* Très petite taille de police pour les liens de nav */
+    margin: 0 3px;
+  }
+
+  th, td {
+    padding: 6px;
+    font-size: 11px;
+  }
+
+  /* Cache certaines colonnes pour les très petits écrans */
+  table thead th:nth-child(4), /* Cache Cap. */
+  table tbody td:nth-child(4),
+  table thead th:nth-child(5), /* Cache Conseil */
+  table tbody td:nth-child(5) {
+    display: none;
+  }
 }
