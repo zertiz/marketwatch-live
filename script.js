@@ -221,6 +221,8 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
   stockListTableBody.innerHTML = '';
   cryptoListTableBody.innerHTML = '';
 
+  const currencySymbol = getCurrencySymbol(currentCurrency); // Sera toujours '$'
+
   // Data for Stock/Forex/Indices/Commodities table (FMP data)
   const allNonCryptoAssets = [
     ...(Array.isArray(stocks) ? stocks : []),
@@ -529,7 +531,7 @@ async function fetchHistoricalData(symbol, type, period) {
     else if (period === '30d') days = '30';
     else if (period === '90d') days = '90';
     else if (period === '365d') days = '365';
-    else if (period === 'max') days = 'max';
+    else if (period === 'max') days = 'max'; // CoinGecko supporte 'max'
     else days = '30';
 
     // CoinGecko sera toujours en USD
@@ -548,7 +550,8 @@ async function fetchHistoricalData(symbol, type, period) {
     } else if (period === '365d') {
         startDate.setFullYear(endDate.getFullYear() - 1);
     } else if (period === 'max') {
-        startDate.setFullYear(endDate.getFullYear() - 5);
+        // Pour FMP, tenter une période très longue pour simuler le "max"
+        startDate.setFullYear(endDate.getFullYear() - 20); // Essayer 20 ans
     } else {
         startDate.setDate(endDate.getDate() - 30);
     }
@@ -575,7 +578,6 @@ async function fetchHistoricalData(symbol, type, period) {
         price: item[1]
       }));
     } else if (data[dataPath]) {
-      // Pas de conversion historique nécessaire, car tout est en USD
       historicalPrices = data[dataPath].map(item => ({
           date: item.date,
           price: item.close
@@ -672,16 +674,6 @@ function renderChart(historicalData, assetName, ctx, currencyCode) {
 
 // --- Initialisation au chargement du DOM ---
 document.addEventListener('DOMContentLoaded', () => {
-  // Le sélecteur de devise est retiré, donc plus besoin de l'initialiser ou d'écouter ses changements.
-  // const currencySelector = document.getElementById('currencySelector');
-  // if (currencySelector) {
-  //   currencySelector.value = currentCurrency;
-  //   currencySelector.addEventListener('change', (event) => {
-  //     currentCurrency = event.target.value;
-  //     fetchData();
-  //   });
-  // }
-
   handleNavigation(); // Initialise la navigation et la visibilité des sections
   fetchData(); // Première récupération des données
 
