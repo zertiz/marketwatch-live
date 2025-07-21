@@ -94,12 +94,10 @@ async function initializeFirebase() {
 // --- Fonctions de Récupération et Mise à Jour des Données ---
 
 async function fetchData() {
-  // Clé API FMP mise à jour avec celle de votre tableau de bord
-  const apiKey = '8C6eqw9VAcDUFxs1UERgRgY64pNe9xYd'; 
+  const apiKey = '8C6eqw9VAcDUFxs1UERgRgY64pNe9xYd'; // Votre clé API FMP
   const cryptoUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana,cardano,ripple,dogecoin,tron,polkadot,polygon,chainlink';
   const stockUrl = `https://financialmodelingprep.com/api/v3/quote/AAPL,NVDA,MSFT,TSLA,AMZN,META,GOOG,JPM,BAC,V?apikey=${apiKey}`;
   const forexUrl = `https://financialmodelingprep.com/api/v3/quote/EURUSD,USDJPY,GBPUSD,AUDUSD,USDCAD,USDCHF,USDCNY,USDHKD,USDSEK,USDSGD?apikey=${apiKey}`;
-  // Revert de l'URL des indices à sa version originale
   const indicesUrl = `https://financialmodelingprep.com/api/v3/quote/%5EDJI,%5EIXIC,%5EGSPC,%5EFCHI,%5EGDAXI,%5EFTSE,%5EN225,%5EHSI,%5ESSMI,%5EBVSP?apikey=${apiKey}`;
   const commoditiesUrl = `https://financialmodelingprep.com/api/v3/quote/GCUSD,SIUSD,CLUSD,NGUSD,HGUSD,ALIUSD,PAUSD,PLUSD,KCUSD,SBUSD?apikey=${apiKey}`;
 
@@ -109,68 +107,70 @@ async function fetchData() {
   document.getElementById('indices-list').innerHTML = '<li>Chargement des indices du marché...</li>';
   document.getElementById('recommendations').innerHTML = '<li>Chargement des recommandations...</li>';
 
+  // Array to hold all fetch promises
+  const fetchPromises = [
+    { name: 'crypto', promise: fetch(cryptoUrl) },
+    { name: 'stocks', promise: fetch(stockUrl) },
+    { name: 'forex', promise: fetch(forexUrl) },
+    { name: 'indices', promise: fetch(indicesUrl) },
+    { name: 'commodities', promise: fetch(commoditiesUrl) }
+  ];
 
   try {
-    const [cryptoRes, stockRes, forexRes, indicesRes, commoditiesRes] = await Promise.all([
-      fetch(cryptoUrl),
-      fetch(stockUrl),
-      fetch(forexUrl),
-      fetch(indicesUrl),
-      fetch(commoditiesUrl)
-    ]);
+    const results = await Promise.allSettled(fetchPromises.map(p => p.promise));
 
-    // Check for API key errors (403 Forbidden) or 404 Not Found
-    if (!stockRes.ok || !forexRes.ok || !indicesRes.ok || !commoditiesRes.ok) {
-        let errorMessage = "Erreur de récupération des données de Financial Modeling Prep. ";
-        if (stockRes.status === 403 || forexRes.status === 403 || indicesRes.status === 403 || commoditiesRes.status === 403) {
-            errorMessage += "Votre clé API est peut-être invalide ou les limites d'utilisation ont été dépassées (403 Forbidden).";
-        } else if (indicesRes.status === 404) {
-            errorMessage += "L'URL des indices est peut-être incorrecte (404 Not Found).";
-        } else {
-            errorMessage += `Statut: ${stockRes.status || forexRes.status || indicesRes.status || commoditiesRes.status}`;
+    let cryptoData = [];
+    let stockData = [];
+    let forexData = [];
+    let indicesData = [];
+    let commoditiesData = [];
+
+    results.forEach((result, index) => {
+      const { name } = fetchPromises[index];
+      if (result.status === 'fulfilled') {
+        result.value.json().then(data => {
+          console.log(`[DEBUG] Données brutes reçues pour ${name}:`, data);
+          if (name === 'crypto') {
+            cryptoData = Array.isArray(data) ? data : [];
+          } else if (name === 'stocks') {
+            stockData = Array.isArray(data) ? data : [];
+          } else if (name === 'forex') {
+            forexData = Array.isArray(data) ? data : [];
+          } else if (name === 'indices') {
+            indicesData = Array.isArray(data) ? data : [];
+          } else if (name === 'commodities') {
+            commoditiesData = Array.isArray(data) ? data : [];
+          }
+        }).catch(jsonError => {
+          console.error(`[ERROR] Erreur de parsing JSON pour ${name}:`, jsonError);
+          // Afficher un message d'erreur dans l'UI si nécessaire
+          if (name === 'stocks') document.getElementById('stock-list').innerHTML = `<tr><td colspan="5" class="error-message">Erreur de données pour les actions.</td></tr>`;
+          if (name === 'crypto') document.getElementById('crypto-list').innerHTML = `<tr><td colspan="5" class="error-message">Erreur de données pour les cryptos.</td></tr>`;
+          if (name === 'indices') document.getElementById('indices-list').innerHTML = `<li><span class="error-message">Erreur de données pour les indices.</span></li>`;
+          if (name === 'recommendations') document.getElementById('recommendations').innerHTML = `<li><span class="error-message">Erreur de données pour les recommandations.</span></li>`;
+        });
+      } else {
+        console.error(`[ERROR] Échec de la récupération des données pour ${name}:`, result.reason);
+        let errorMessage = `Erreur de chargement pour ${name}.`;
+        if (result.reason instanceof Response) {
+            errorMessage += ` Statut: ${result.reason.status}`;
+            if (result.reason.status === 403) {
+                errorMessage += " (Clé API invalide ou limites dépassées)";
+            }
+        } else if (result.reason instanceof Error) {
+            errorMessage += ` Message: ${result.reason.message}`;
         }
-        console.error(errorMessage);
-        // Clear tables and show error
-        document.getElementById('stock-list').innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
-        document.getElementById('crypto-list').innerHTML = `<tr><td colspan="5" class="error-message">Chargement des données crypto...</td></tr>`; // Crypto might still load
-        document.getElementById('indices-list').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
-        document.getElementById('recommendations').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
-        // Proceed with potentially empty data for other parts
-    }
+        // Afficher un message d'erreur dans l'UI
+        if (name === 'stocks') document.getElementById('stock-list').innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
+        if (name === 'crypto') document.getElementById('crypto-list').innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
+        if (name === 'indices') document.getElementById('indices-list').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
+        if (name === 'recommendations') document.getElementById('recommendations').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
+      }
+    });
 
+    // Wait for all JSON parsing promises to settle before updating global data
+    await Promise.all(results.map(r => r.status === 'fulfilled' ? r.value.json().catch(() => {}) : Promise.resolve()));
 
-    // Retrieve JSON data
-    let cryptoData = await cryptoRes.json();
-    let stockData = await stockRes.json();
-    let forexData = await forexRes.json();
-    let indicesData = await indicesRes.json();
-    let commoditiesData = await commoditiesRes.json();
-
-    // Robust checks to ensure data are arrays
-    // If data is not an array, it's initialized to an empty array
-    if (!Array.isArray(stockData)) {
-        console.error("Données de bourse invalides ou manquantes. Initialisation à un tableau vide.");
-        stockData = [];
-    }
-    if (!Array.isArray(cryptoData)) {
-        console.error("Données de crypto invalides ou manquantes. Initialisation à un tableau vide.");
-        cryptoData = [];
-    }
-    if (!Array.isArray(forexData)) {
-        console.error("Données de forex invalides ou manquantes. Initialisation à un tableau vide.");
-        forexData = [];
-    }
-    // Correction pour indicesData: le point de terminaison /quote/ renvoie un tableau d'objets déjà au bon format
-    if (!Array.isArray(indicesData)) {
-        console.error("Données d'indices invalides ou manquantes. Initialisation à un tableau vide.");
-        indicesData = [];
-    }
-    if (!Array.isArray(commoditiesData)) {
-        console.error("Données de matières premières invalides ou manquantes. Initialisation à un tableau vide.");
-        commoditiesData = [];
-    }
-
-    // Store data in global variables
     allFetchedData.stocks = stockData;
     allFetchedData.cryptos = cryptoData;
     allFetchedData.forex = forexData;
@@ -189,7 +189,7 @@ async function fetchData() {
     updateIndices([...allFetchedData.indices, ...allFetchedData.commodities]);
 
   } catch (error) {
-    console.error("Erreur de chargement des données:", error);
+    console.error("Erreur générale lors du chargement des données:", error);
     const genericErrorMessage = "Une erreur inattendue est survenue lors du chargement des données.";
     document.getElementById('stock-list').innerHTML = `<tr><td colspan="5" class="error-message">${genericErrorMessage}</td></tr>`;
     document.getElementById('crypto-list').innerHTML = `<tr><td colspan="5" class="error-message">${genericErrorMessage}</td></tr>`;
