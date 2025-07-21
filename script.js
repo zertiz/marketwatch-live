@@ -149,7 +149,8 @@ async function fetchData() {
             if (!Array.isArray(data)) {
                 console.error(`[ERROR] Données d'indices reçues non conformes (non un tableau). Objet reçu:`, data);
                 // Vérifier si l'objet contient un message d'erreur de FMP
-                if (data && data.Error Message && data.Error Message.includes('Free plan is limited to US stocks only')) {
+                // Correction ici: utiliser la notation entre crochets pour "Error Message"
+                if (data && data['Error Message'] && data['Error Message'].includes('Free plan is limited to US stocks only')) {
                     tempFetchedData.indices = { error: "Limitation du plan FMP: Indices non disponibles." };
                 } else {
                     tempFetchedData.indices = []; // Assurez-vous que c'est un tableau vide si non conforme
