@@ -1,4 +1,14 @@
-// script.js
+// Variables globales pour stocker toutes les données récupérées
+let allFetchedData = {
+  stocks: [],
+  cryptos: [],
+  forex: [],
+  indices: [],
+  commodities: []
+};
+
+// Variable pour garder en mémoire la dernière section active avant une recherche
+let lastActiveSection = 'home';
 
 async function fetchData() {
   const cryptoUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana,cardano,ripple,dogecoin,tron,polkadot,polygon,chainlink';
@@ -17,6 +27,7 @@ async function fetchData() {
       fetch(commoditiesUrl)
     ]);
 
+    // Récupération des données JSON
     let cryptoData = await cryptoRes.json();
     let stockData = await stockRes.json();
     let forexData = await forexRes.json();
@@ -24,6 +35,7 @@ async function fetchData() {
     let commoditiesData = await commoditiesRes.json();
 
     // Vérifications robustes pour s'assurer que les données sont des tableaux
+    // Si les données ne sont pas un tableau, elles sont initialisées à un tableau vide
     if (!Array.isArray(stockData)) {
         console.error("Données de bourse invalides ou manquantes. Initialisation à un tableau vide.");
         stockData = [];
@@ -45,9 +57,17 @@ async function fetchData() {
         commoditiesData = [];
     }
 
-    updateLists(stockData, cryptoData, forexData, indicesData, commoditiesData);
-    // Concaténation des indices et des matières premières pour la mise à jour des indices latéraux
-    updateIndices([...indicesData, ...commoditiesData]);
+    // Stockage des données dans les variables globales
+    allFetchedData.stocks = stockData;
+    allFetchedData.cryptos = cryptoData;
+    allFetchedData.forex = forexData;
+    allFetchedData.indices = indicesData;
+    allFetchedData.commodities = commoditiesData;
+
+    // Mise à jour initiale des listes avec toutes les données
+    updateLists(allFetchedData.stocks, allFetchedData.cryptos, allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities);
+    updateIndices([...allFetchedData.indices, ...allFetchedData.commodities]);
+
   } catch (error) {
     console.error("Erreur lors du chargement des données :", error);
   }
@@ -132,36 +152,35 @@ async function fetchNews() {
   }
 }
 
+// Fonction pour mettre à jour les listes d'actions et de cryptos
 function updateLists(stocks, cryptos, forex, indices, commodities) {
-  const stockList = document.getElementById('stock-list');
-  const cryptoList = document.getElementById('crypto-list');
+  const stockListTableBody = document.getElementById('stock-list');
+  const cryptoListTableBody = document.getElementById('crypto-list');
   const recList = document.getElementById('recommendations');
 
-  if (!stockList || !cryptoList || !recList) return;
+  if (!stockListTableBody || !cryptoListTableBody || !recList) return;
 
   // Nettoyage des listes avant d'ajouter de nouvelles données
-  stockList.innerHTML = '';
-  cryptoList.innerHTML = '';
+  stockListTableBody.innerHTML = '';
+  cryptoListTableBody.innerHTML = '';
 
-  // Concaténation de toutes les données d'actifs pour les recommandations et l'affichage principal
-  const allAssets = [
+  // Combine tous les actifs non-crypto pour le tableau des actions
+  const nonCryptoAssets = [
     ...(Array.isArray(stocks) ? stocks : []),
-    ...(Array.isArray(cryptos) ? cryptos : []),
     ...(Array.isArray(forex) ? forex : []),
     ...(Array.isArray(indices) ? indices : []),
     ...(Array.isArray(commodities) ? commodities : [])
   ];
 
-  allAssets.forEach(asset => {
-    // Récupération des données pertinentes avec des valeurs par défaut
-    const change = asset.price_change_percentage_24h ?? asset.changesPercentage ?? 0;
-    const price = asset.current_price ?? asset.price ?? 0;
-    const cap = asset.market_cap ?? asset.marketCap ?? 0;
+  // Remplir le tableau des actions
+  nonCryptoAssets.forEach(asset => {
+    const change = asset.changesPercentage ?? 0;
+    const price = asset.price ?? 0;
+    const cap = asset.marketCap ?? 0;
     const isGain = change >= 0;
     const recommendation = change > 3 ? 'Acheter' : change < -3 ? 'Vendre' : 'Conserver';
     const changeClass = isGain ? 'gain' : 'loss';
 
-    // Création de la ligne de tableau pour chaque actif
     const row = `
       <tr>
         <td>${asset.name}</td>
@@ -171,26 +190,47 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
         <td>${recommendation}</td>
       </tr>
     `;
-
-    // Détermination si l'actif est une cryptomonnaie pour l'afficher dans la bonne section
-    const isCrypto = ['BTC', 'ETH', 'SOL', 'ADA', 'XRP', 'DOGE', 'TRX', 'DOT', 'MATIC', 'LINK'].includes(asset.symbol?.toUpperCase());
-    
-    if (isCrypto) {
-      cryptoList.innerHTML += row;
-    } else {
-      // Toutes les autres données (actions, forex, indices, matières premières) vont dans la liste des actions
-      stockList.innerHTML += row;
-    }
+    stockListTableBody.innerHTML += row;
   });
 
-  // Mise à jour de la liste des recommandations
-  recList.innerHTML = allAssets.map(asset => {
+  // Remplir le tableau des cryptomonnaies
+  (Array.isArray(cryptos) ? cryptos : []).forEach(asset => {
+    const change = asset.price_change_percentage_24h ?? 0;
+    const price = asset.current_price ?? 0;
+    const cap = asset.market_cap ?? 0;
+    const isGain = change >= 0;
+    const recommendation = change > 3 ? 'Acheter' : change < -3 ? 'Vendre' : 'Conserver';
+    const changeClass = isGain ? 'gain' : 'loss';
+
+    const row = `
+      <tr>
+        <td>${asset.name}</td>
+        <td>$${price.toLocaleString()}</td>
+        <td class="${changeClass}">${change.toFixed(2)}%</td>
+        <td>${cap ? '$' + (cap / 1e9).toFixed(1) + 'B' : 'N/A'}</td>
+        <td>${recommendation}</td>
+      </tr>
+    `;
+    cryptoListTableBody.innerHTML += row;
+  });
+
+  // Combine tous les actifs pour les recommandations
+  const allAssetsForRecommendations = [
+    ...(Array.isArray(stocks) ? stocks : []),
+    ...(Array.isArray(cryptos) ? cryptos : []),
+    ...(Array.isArray(forex) ? forex : []),
+    ...(Array.isArray(indices) ? indices : []),
+    ...(Array.isArray(commodities) ? commodities : [])
+  ];
+
+  recList.innerHTML = allAssetsForRecommendations.map(asset => {
     const change = asset.price_change_percentage_24h ?? asset.changesPercentage ?? 0;
     const recommendation = change > 3 ? '📈 Acheter' : change < -3 ? '📉 Vendre' : '🤝 Conserver';
     return `<li>${asset.name}: ${recommendation}</li>`;
   }).join('');
 }
 
+// Fonction pour mettre à jour la liste des indices dans la barre latérale
 function updateIndices(data) {
   const list = document.getElementById('indices-list');
   if (!list) return;
@@ -201,7 +241,6 @@ function updateIndices(data) {
     return;
   }
 
-  // Mise à jour de la liste des indices du marché
   list.innerHTML = data.map(item => {
     const change = item.changesPercentage?.toFixed(2);
     const cls = change >= 0 ? 'gain' : 'loss';
@@ -209,23 +248,100 @@ function updateIndices(data) {
   }).join('');
 }
 
+// Fonction pour filtrer et afficher les résultats de recherche
+function performSearch(query) {
+  const lowerCaseQuery = query.toLowerCase();
+
+  // Si la requête est vide, revenir à la vue de la dernière section active
+  if (query === '') {
+    // Restaurer le lien de navigation actif
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    document.querySelector(`.nav-link[data-section="${lastActiveSection}"]`).classList.add('active');
+
+    // Restaurer la section de contenu active
+    document.querySelectorAll('.content-section').forEach(sec => sec.classList.add('hidden'));
+    document.getElementById(lastActiveSection).classList.remove('hidden');
+
+    // Re-remplir les listes avec toutes les données en fonction de la section restaurée
+    if (lastActiveSection === 'stocks') {
+      updateLists(allFetchedData.stocks, allFetchedData.cryptos, allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities);
+    } else if (lastActiveSection === 'crypto') {
+      updateLists([], allFetchedData.cryptos, [], [], []); // Seulement les données crypto pour la section crypto
+    } else if (lastActiveSection === 'news') {
+      fetchNews(); // Re-fetch les actualités si c'était l'onglet actif
+    }
+    // Pour les recommandations générales et les indices de la barre latérale, utiliser toutes les données
+    updateIndices([...allFetchedData.indices, ...allFetchedData.commodities]);
+    return; // Quitter la fonction
+  }
+
+  // Stocker la section active actuelle avant d'effectuer la recherche
+  const currentActiveNavLink = document.querySelector('.nav-link.active');
+  if (currentActiveNavLink) {
+    lastActiveSection = currentActiveNavLink.dataset.section;
+  }
+
+  // Filtrer tous les types de données
+  const filteredStocks = allFetchedData.stocks.filter(asset =>
+    asset.name.toLowerCase().includes(lowerCaseQuery) || asset.symbol.toLowerCase().includes(lowerCaseQuery)
+  );
+  const filteredCryptos = allFetchedData.cryptos.filter(asset =>
+    asset.name.toLowerCase().includes(lowerCaseQuery) || asset.symbol?.toLowerCase().includes(lowerCaseQuery)
+  );
+  const filteredForex = allFetchedData.forex.filter(asset =>
+    asset.name.toLowerCase().includes(lowerCaseQuery) || asset.symbol.toLowerCase().includes(lowerCaseQuery)
+  );
+  const filteredIndices = allFetchedData.indices.filter(asset =>
+    asset.name.toLowerCase().includes(lowerCaseQuery) || asset.symbol?.toLowerCase().includes(lowerCaseQuery)
+  );
+  const filteredCommodities = allFetchedData.commodities.filter(asset =>
+    asset.name.toLowerCase().includes(lowerCaseQuery) || asset.symbol.toLowerCase().includes(lowerCaseQuery)
+  );
+
+  // Désactiver tous les liens de navigation et activer 'Bourse' pour les résultats de recherche
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  document.querySelector('.nav-link[data-section="stocks"]').classList.add('active');
+
+  // Masquer toutes les sections de contenu et afficher la section 'stocks' pour les résultats de recherche
+  document.querySelectorAll('.content-section').forEach(sec => sec.classList.add('hidden'));
+  document.getElementById('stocks').classList.remove('hidden');
+
+  // Mettre à jour les listes avec les données filtrées
+  updateLists(filteredStocks, filteredCryptos, filteredForex, filteredIndices, filteredCommodities);
+  // Mettre à jour les indices de la barre latérale avec les indices et matières premières filtrés
+  updateIndices([...filteredIndices, ...filteredCommodities]);
+}
+
+// Gestion de la navigation entre les sections
 function handleNavigation() {
   document.querySelectorAll('.nav-link').forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
       const section = link.dataset.section;
 
-      // Gestion des classes actives pour la navigation
+      // Mettre à jour la dernière section active lorsque l'on clique sur un lien de navigation
+      lastActiveSection = section;
+
       document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
       link.classList.add('active');
 
-      // Affichage de la section correspondante et masquage des autres
       document.querySelectorAll('.content-section').forEach(sec => sec.classList.add('hidden'));
       const activeSection = document.getElementById(section);
       if (activeSection) activeSection.classList.remove('hidden');
 
-      // Si la section "Actualité" est activée, déclencher la récupération des actualités
-      if (section === 'news') fetchNews();
+      // Si l'on bascule vers un onglet affichant des données, re-remplir avec toutes les données
+      if (section === 'stocks') {
+        updateLists(allFetchedData.stocks, allFetchedData.cryptos, allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities);
+        updateIndices([...allFetchedData.indices, ...allFetchedData.commodities]);
+      } else if (section === 'crypto') {
+        updateLists([], allFetchedData.cryptos, [], [], []); // Seulement les données crypto
+        // Pour les recommandations et les indices latéraux, utiliser toutes les données
+        updateIndices([...allFetchedData.indices, ...allFetchedData.commodities]);
+      } else if (section === 'news') {
+        fetchNews();
+      }
+      // Effacer la barre de recherche lors de la navigation
+      document.querySelector('.search-bar').value = '';
     });
   });
 }
@@ -233,7 +349,14 @@ function handleNavigation() {
 // Initialisation de la navigation et récupération des données au chargement du DOM
 document.addEventListener('DOMContentLoaded', () => {
   handleNavigation();
-  fetchData();
+  fetchData(); // Première récupération des données
+  // Ajout de l'écouteur d'événement pour la barre de recherche
+  const searchBar = document.querySelector('.search-bar');
+  if (searchBar) {
+    searchBar.addEventListener('input', (e) => {
+      performSearch(e.target.value);
+    });
+  }
   // Intervalle de rafraîchissement des données (très long ici, ajuster si nécessaire)
-  setInterval(fetchData, 1000000); 
+  setInterval(fetchData, 1000000);
 });
