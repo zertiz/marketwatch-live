@@ -38,14 +38,8 @@ async function fetchData() {
   // Symboles pour Alpha Vantage
   const stockSymbols = 'AAPL,NVDA,MSFT,TSLA,AMZN,META,GOOG,JPM,BAC,V';
   const forexSymbols = 'EUR,JPY,GBP,AUD,CAD,CHF,CNY,HKD,SEK,SGD'; // Base USD pour les paires
-  const indexSymbols = '^DJI,^IXIC,^GSPC,^FCHI,^GDAXI,^FTSE,^N225,^HSI,^SSMI,^BVSP'; // Alpha Vantage utilise des symboles différents pour les indices, ex: SPX, DJI
-  // Pour les indices et matières premières avec Alpha Vantage, il faut souvent des requêtes individuelles
-  // ou des fonctions spécifiques. Pour simplifier, nous allons chercher des "Global Quote" pour les actions
-  // et des "TIME_SERIES_DAILY" pour les indices/commodités si nécessaire.
   // Pour les indices, Alpha Vantage utilise des symboles comme "SPX" pour S&P 500, "DJI" pour Dow Jones.
   // Les symboles FMP comme ^DJI ne fonctionneront pas directement.
-  // Pour cette implémentation, je vais simuler des requêtes pour les indices et commodities via GLOBAL_QUOTE
-  // si un symbole Alpha Vantage équivalent est connu, sinon les ignorer.
 
   // Display loading messages for main tables
   document.getElementById('stock-list').innerHTML = '<tr><td colspan="5">Loading stock data...</td></tr>';
@@ -83,14 +77,22 @@ async function fetchData() {
     let stockData = [];
     if (stockBatchRes.ok) {
         const rawStockData = await stockBatchRes.json();
+        console.log("Raw Alpha Vantage Stock Batch Data:", rawStockData); // Debugging: raw stock data
         if (rawStockData && rawStockData['Stock Quotes']) {
-            stockData = rawStockData['Stock Quotes'].map(item => ({
-                name: item['2. name'] || item['1. symbol'], // Alpha Vantage doesn't always provide full name in batch
-                symbol: item['1. symbol'],
-                price: parseFloat(item['8. latestPrice'] || item['5. price']), // Use latestPrice if available, otherwise price
-                changesPercentage: parseFloat(item['9. changePercent'] || item['10. change percent']) * 100, // Convert to percentage
-                marketCap: null // Alpha Vantage GLOBAL_QUOTE has MarketCap, BATCH_STOCK_QUOTES does not directly
-            }));
+            stockData = rawStockData['Stock Quotes'].map(item => {
+                const changePercentRaw = item['9. changePercent'] || item['10. change percent'];
+                const changesPercentage = changePercentRaw ? parseFloat(changePercentRaw) * 100 : 0; // Convert to percentage, default to 0 if null/undefined
+                
+                console.log(`Stock: ${item['1. symbol']}, Raw Change Percent: ${changePercentRaw}, Processed Change: ${changesPercentage}%`); // Debugging: individual stock change
+
+                return {
+                    name: item['2. name'] || item['1. symbol'],
+                    symbol: item['1. symbol'],
+                    price: parseFloat(item['8. latestPrice'] || item['5. price']),
+                    changesPercentage: changesPercentage,
+                    marketCap: null
+                };
+            });
         }
     } else {
         console.error("Error fetching stock data from Alpha Vantage:", stockBatchRes.status, await stockBatchRes.text());
@@ -105,8 +107,7 @@ async function fetchData() {
     const alphaVantageIndexMap = {
         'SPX': 'S&P 500',
         'DJI': 'Dow Jones Industrial Average',
-        'NASDAQ': 'NASDAQ Composite' // This is a general symbol, not an index future
-        // Add more if you find direct Alpha Vantage symbols for other indices
+        'NASDAQ': 'NASDAQ Composite'
     };
 
     for (let i = 0; i < forexAndIndexRes.length; i++) {
@@ -116,6 +117,7 @@ async function fetchData() {
             continue;
         }
         const data = await res.json();
+        console.log(`Raw Alpha Vantage Forex/Index Data (index ${i}):`, data); // Debugging: raw forex/index data
 
         if (data && data['Realtime Currency Exchange Rate']) {
             const rate = data['Realtime Currency Exchange Rate'];
@@ -129,13 +131,18 @@ async function fetchData() {
         } else if (data && data['Global Quote']) {
             const quote = data['Global Quote'];
             const symbol = quote['01. symbol'];
-            const name = alphaVantageIndexMap[symbol] || symbol; // Use mapped name or symbol
+            const name = alphaVantageIndexMap[symbol] || symbol;
+            const changePercentRaw = quote['10. change percent'];
+            const changesPercentage = changePercentRaw ? parseFloat(changePercentRaw) * 100 : 0; // Convert to percentage, default to 0 if null/undefined
+
+            console.log(`Index: ${symbol}, Raw Change Percent: ${changePercentRaw}, Processed Change: ${changesPercentage}%`); // Debugging: individual index change
+
             indicesData.push({
                 name: name,
                 symbol: symbol,
                 price: parseFloat(quote['05. price']),
-                changesPercentage: parseFloat(quote['10. change percent']) * 100,
-                marketCap: parseFloat(quote['06. volume']) * parseFloat(quote['05. price']) // Volume * Price as a proxy for market cap if not available
+                changesPercentage: changesPercentage,
+                marketCap: parseFloat(quote['06. volume']) * parseFloat(quote['05. price'])
             });
         }
     }
@@ -438,7 +445,7 @@ function performSearch(query) {
   document.getElementById('home').classList.add('hidden');
 
   updateLists(filteredStocks, filteredCryptos, filteredForex, filteredIndices, filteredCommodities);
-  updateIndices([...filteredIndices, ...filteredCommodities]);
+  updateIndices([...filteredIndices, ...allFetchedData.commodities]);
 }
 
 // Handle navigation between sections
