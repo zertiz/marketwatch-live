@@ -323,52 +323,9 @@ th {
   font-weight: bold;
 }
 
-/* Styles pour les sélecteurs de période du graphique */
-.chart-period-selector {
-  text-align: center;
-  margin-bottom: 15px;
-}
+/* Les styles pour les sélecteurs de période du graphique sont retirés */
 
-.chart-period-selector button {
-  background-color: #333;
-  color: #61dafb;
-  border: 1px solid #444;
-  padding: 8px 15px;
-  margin: 0 5px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s, color 0.2s;
-  font-size: 0.9em;
-}
-
-.chart-period-selector button:hover {
-  background-color: #444;
-}
-
-.chart-period-selector button.active {
-  background-color: #61dafb;
-  color: #1a1a1a;
-  font-weight: bold;
-}
-
-/* Styles pour les boutons d'action (watchlist) */
-.watchlist-btn {
-  background: none;
-  border: none;
-  font-size: 1.2em; /* Taille de l'étoile */
-  cursor: pointer;
-  color: #b0b0b0; /* Couleur par défaut (gris) */
-  transition: color 0.2s;
-  padding: 0 5px;
-}
-
-.watchlist-btn.added {
-  color: #FFD700; /* Couleur or si ajouté */
-}
-
-.watchlist-btn:hover {
-  color: #61dafb; /* Bleu clair au survol */
-}
+/* Les styles pour les boutons d'action (watchlist) sont retirés */
 
 /* Utilitaires */
 .hidden {
@@ -489,20 +446,16 @@ th {
     font-size: 12px; /* Encore plus petite taille de police */
   }
 
-  /* La colonne "Action" est masquée sur les petits écrans pour économiser de l'espace */
-  table thead th:nth-child(6),
-  table tbody td:nth-child(6) {
+  /* Les colonnes "Cap." et "Advice" sont masquées sur les très petits écrans */
+  table thead th:nth-child(4),
+  table tbody td:nth-child(4),
+  table thead th:nth-child(5),
+  table tbody td:nth-child(5) {
     display: none;
   }
 
   .chart-container {
     height: 250px; /* Hauteur encore plus réduite pour le graphique */
-  }
-
-  .chart-period-selector button {
-    padding: 6px 10px;
-    font-size: 0.8em;
-    margin: 0 3px;
   }
 }
 
@@ -516,13 +469,5 @@ th {
   th, td {
     padding: 6px;
     font-size: 11px;
-  }
-
-  /* Cache certaines colonnes pour les très petits écrans */
-  table thead th:nth-child(4), /* Cache Cap. */
-  table tbody td:nth-child(4),
-  table thead th:nth-child(5), /* Cache Advice */
-  table tbody td:nth-child(5) {
-    display: none;
   }
 }
