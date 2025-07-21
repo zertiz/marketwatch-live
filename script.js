@@ -148,7 +148,12 @@ async function fetchData() {
             // Spécifiquement pour les indices, si ce n'est pas un tableau, loggez l'objet entier
             if (!Array.isArray(data)) {
                 console.error(`[ERROR] Données d'indices reçues non conformes (non un tableau). Objet reçu:`, data);
-                tempFetchedData.indices = []; // Assurez-vous que c'est un tableau vide si non conforme
+                // Vérifier si l'objet contient un message d'erreur de FMP
+                if (data && data.Error Message && data.Error Message.includes('Free plan is limited to US stocks only')) {
+                    tempFetchedData.indices = { error: "Limitation du plan FMP: Indices non disponibles." };
+                } else {
+                    tempFetchedData.indices = []; // Assurez-vous que c'est un tableau vide si non conforme
+                }
             } else {
                 tempFetchedData.indices = data;
             }
@@ -419,7 +424,7 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
         if (change > 3) {
           recommendation = '📈 Acheter';
         } else if (change < -3) {
-          recommendation = '� Vendre';
+          recommendation = '📉 Vendre';
         } else {
           recommendation = '🤝 Conserver';
         }
@@ -468,6 +473,12 @@ function updateIndices(data) {
 
   console.log("[DEBUG] updateIndices - Données reçues:", data);
 
+  if (data && data.error) { // Si c'est un objet d'erreur de FMP
+      list.innerHTML = `<li><span class="error-message">${data.error}</span></li>`;
+      console.error("[ERROR] FMP Indices API Error:", data.error);
+      return;
+  }
+  
   if (!Array.isArray(data)) {
     console.error("Les données pour updateIndices ne sont pas un tableau.", data);
     list.innerHTML = '<li>Aucun indice de marché disponible.</li>'; // Afficher le message si non un tableau

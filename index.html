@@ -6,6 +6,33 @@
   <title>MarketWatch Live</title>
   <link rel="stylesheet" href="style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Montserrat:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    /* Règles de débogage temporaires pour forcer l'affichage */
+    .content-section {
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      height: auto !important;
+      overflow: visible !important;
+    }
+    .content-section.hidden {
+      display: none !important; /* Permet la navigation normale */
+    }
+    .data-table, table {
+      display: table !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+    /* S'assurer que les th, td, tr ne sont pas masqués */
+    .data-table th, .data-table td, .data-table tr {
+      display: table-cell !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+    .data-table tr {
+      display: table-row !important;
+    }
+  </style>
 </head>
 <body>
   <header class="top-bar">
@@ -53,7 +80,7 @@
 
       <section id="stocks" class="market-table card content-section hidden">
         <h2>Marché Boursier & Forex 📊</h2>
-        <table class="data-table" style="display: table !important;"> <!-- TEMPORARY DEBUG STYLE -->
+        <table class="data-table">
           <thead>
             <tr>
               <th data-sort-key="name" data-sort-direction="asc">Nom <span class="sort-arrow"></span></th>
@@ -71,7 +98,7 @@
 
       <section id="crypto" class="market-table card content-section hidden">
         <h2>Cryptomonnaies ₿</h2>
-        <table class="data-table" style="display: table !important;"> <!-- TEMPORARY DEBUG STYLE -->
+        <table class="data-table">
           <thead>
             <tr>
               <th data-sort-key="name" data-sort-direction="asc">Nom <span class="sort-arrow"></span></th>
