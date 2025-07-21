@@ -18,6 +18,7 @@
     </nav>
     <div class="user-actions">
       <input type="text" placeholder="Rechercher..." class="search-bar" />
+      <!-- L'ID 'authButton' a été ajouté ici -->
       <button class="auth-btn" id="authButton">Connexion</button>
     </div>
   </header>
@@ -36,6 +37,13 @@
           <li>Chargement...</li>
         </ul>
       </div>
+      <!-- Nouvelle section pour la liste de suivi de l'utilisateur -->
+      <div class="sidebar-section">
+        <h3>Ma Watchlist ⭐</h3>
+        <ul id="my-watchlist">
+          <li id="watchlist-loading">Connectez-vous pour voir votre watchlist.</li>
+        </ul>
+      </div>
     </aside>
 
     <main class="main-content">
@@ -49,15 +57,16 @@
         <table>
           <thead>
             <tr>
-              <th data-sort-key="name" data-sort-direction="asc">Nom <span class="sort-arrow"></span></th>
-              <th data-sort-key="price" data-sort-direction="asc">Prix <span class="sort-arrow"></span></th>
-              <th data-sort-key="changesPercentage" data-sort-direction="asc">24h % <span class="sort-arrow"></span></th>
-              <th data-sort-key="marketCap" data-sort-direction="asc">Cap. <span class="sort-arrow"></span></th>
+              <th>Nom</th>
+              <th>Prix</th>
+              <th>24h %</th>
+              <th>Cap.</th>
               <th>Conseil</th>
+              <th>Action</th> <!-- Nouvelle colonne pour l'action Watchlist -->
             </tr>
           </thead>
           <tbody id="stock-list">
-            <tr><td colspan="5">Chargement...</td></tr>
+            <tr><td colspan="6">Chargement...</td></tr>
           </tbody>
         </table>
       </section>
@@ -67,15 +76,16 @@
         <table>
           <thead>
             <tr>
-              <th data-sort-key="name" data-sort-direction="asc">Nom <span class="sort-arrow"></span></th>
-              <th data-sort-key="current_price" data-sort-direction="asc">Prix <span class="sort-arrow"></span></th>
-              <th data-sort-key="price_change_percentage_24h" data-sort-direction="asc">24h % <span class="sort-arrow"></span></th>
-              <th data-sort-key="market_cap" data-sort-direction="asc">Cap. <span class="sort-arrow"></span></th>
+              <th>Nom</th>
+              <th>Prix</th>
+              <th>24h %</th>
+              <th>Cap.</th>
               <th>Conseil</th>
+              <th>Action</th> <!-- Nouvelle colonne pour l'action Watchlist -->
             </tr>
           </thead>
           <tbody id="crypto-list">
-            <tr><td colspan="5">Chargement...</td></tr>
+            <tr><td colspan="6">Chargement...</td></tr>
           </tbody>
         </table>
       </section>
@@ -89,17 +99,17 @@
     </main>
   </div>
 
-  <!-- Modal for the chart -->
+  <!-- Modal pour le graphique -->
   <div id="chartModal" class="modal hidden">
     <div class="modal-content">
       <span class="close-button">&times;</span>
       <h2 id="chartTitle"></h2>
-      <!-- Le message de chargement du graphique a été retiré, seul le message d'erreur reste -->
+      <p id="chartLoading" class="loading-message">Chargement du graphique...</p>
       <p id="chartError" class="error-message hidden"></p>
       
-      <!-- Sélecteur de période du graphique (sera masqué par JS) -->
-      <div id="chartPeriodSelector" class="chart-period-selector hidden">
-        <!-- Les boutons seront générés par JavaScript si besoin, mais ici ils sont masqués -->
+      <!-- Sélecteur de période du graphique -->
+      <div id="chartPeriodSelector" class="chart-period-selector">
+        <!-- Les boutons seront générés par JavaScript -->
       </div>
 
       <div class="chart-container">
@@ -108,9 +118,10 @@
     </div>
   </div>
 
-  <!-- Chart.js Import -->
+  <!-- Import de Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="script.js"></script>
+  <!-- IMPORTANT: type="module" est nécessaire pour les imports ES6 de Firebase -->
+  <script src="script.js" type="module"></script>
 </body>
 </html>
 

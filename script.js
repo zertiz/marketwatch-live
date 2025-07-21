@@ -32,7 +32,7 @@ function formatPrice(price, currencyCode) {
 // --- Fonctions de Récupération et Mise à Jour des Données ---
 
 async function fetchData() {
-  const apiKey = '8C6eqw9VAcDUFxs1UERgRgY64pNe9xYd'; // Your FMP API key
+  const apiKey = '8C6eqw9VAcDUFxs1UERgRgY64pNe9xYd'; // Your FMP API key - MISE À JOUR ICI
   // CoinGecko sera toujours en USD
   const cryptoUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana,cardano,ripple,dogecoin,tron,polkadot,polygon,chainlink`;
   const stockUrl = `https://financialmodelingprep.com/api/v3/quote/AAPL,NVDA,MSFT,TSLA,AMZN,META,GOOG,JPM,BAC,V?apikey=${apiKey}`;
@@ -495,70 +495,84 @@ function handleNavigation() {
 async function showChartModal(symbol, type, name) {
   const modal = document.getElementById('chartModal');
   const chartTitle = document.getElementById('chartTitle');
-  // const chartLoading = document.getElementById('chartLoading'); // Référence retirée
   const chartError = document.getElementById('chartError');
   const chartCanvas = document.getElementById('historicalChart');
   const ctx = chartCanvas.getContext('2d');
-  const chartPeriodSelector = document.getElementById('chartPeriodSelector'); // This will be hidden/empty
+  const chartPeriodSelector = document.getElementById('chartPeriodSelector');
+  const chartLoading = document.getElementById('chartLoading'); // Get the loading message element
 
-  // Store current asset details
+  // Toujours commencer par masquer le modal pour assurer un état propre
+  modal.classList.add('hidden');
+  chartError.classList.add('hidden'); // Masquer les messages d'erreur précédents
+  chartLoading.classList.remove('hidden'); // Show loading message
+
+  // Stocker les détails de l'actif actuel
   currentChartSymbol = symbol;
   currentChartType = type;
   currentChartName = name;
 
   chartTitle.textContent = `Évolution du prix pour ${name} (USD)`;
-  // chartLoading.classList.remove('hidden'); // Appel retiré
-  chartError.classList.add('hidden');
-  modal.classList.remove('hidden');
 
-  // Clear and hide period selector buttons as they are no longer needed
-  if (chartPeriodSelector) { // Added null check
+  // Effacer et masquer les boutons de sélection de période (plus nécessaires)
+  if (chartPeriodSelector) {
     chartPeriodSelector.innerHTML = '';
-    chartPeriodSelector.classList.add('hidden'); // Ensure it's hidden
+    chartPeriodSelector.classList.add('hidden'); // Ensure it's hidden if no buttons are needed
   }
 
-
-  // Destroy old chart if it exists
+  // Détruire l'ancien graphique s'il existe
   if (myChart) {
     myChart.destroy();
   }
 
+  // Always show the modal before fetching data to display loading/error states
+  modal.classList.remove('hidden'); 
+
   try {
-    // Call fetchHistoricalData without period, it will default to 1 year
+    console.log(`Attempting to fetch historical data for ${name} (${symbol}, ${type})...`);
     const historicalData = await fetchHistoricalData(symbol, type);
 
     if (historicalData && historicalData.length > 0) {
+      console.log(`Historical data fetched successfully for ${name}. Rendering chart.`);
       renderChart(historicalData, name, ctx, currentCurrency);
-      // chartLoading.classList.add('hidden'); // Appel retiré
+      chartLoading.classList.add('hidden'); // Hide loading message on success
     } else {
-      // chartLoading.classList.add('hidden'); // Appel retiré
-      chartError.classList.remove('hidden');
+      console.error(`No historical data available for ${name} (${symbol}). Displaying error message.`);
+      chartLoading.classList.add('hidden'); // Hide loading message on error
+      chartError.classList.remove('hidden'); // Show error message
       chartError.textContent = "Aucune donnée historique disponible pour cet actif ou erreur API.";
     }
   } catch (error) {
     console.error("Erreur lors du chargement des données historiques:", error);
-    // chartLoading.classList.add('hidden'); // Appel retiré
-    chartError.classList.remove('hidden');
+    chartLoading.classList.add('hidden'); // Hide loading message on error
+    chartError.classList.remove('hidden'); // Show error message
     chartError.textContent = "Erreur lors du chargement des données historiques. Veuillez réessayer plus tard.";
   }
 }
 
 // Fonction pour fermer le modal du graphique
 function closeChartModal() {
-  document.getElementById('chartModal').classList.add('hidden');
+  console.log("closeChartModal appelée."); // Journal de débogage
+  const modal = document.getElementById('chartModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    console.log("Classe 'hidden' ajoutée au modal."); // Journal de débogage
+  }
   if (myChart) {
     myChart.destroy();
+    console.log("Graphique détruit."); // Journal de débogage
   }
-  // No need to clear chartPeriodSelector.innerHTML as it's hidden now
 }
 
 // Fonction pour récupérer les données historiques
 // Removed 'period' parameter as it's now fixed to 1 year and no caching
 async function fetchHistoricalData(symbol, type) {
-  const apiKey = '8C6eqw9VAcDUFxs1UERgRgY64pNe9xYd';
+  const apiKey = '8C6eqw9VAcDUFxs1UERgRgY64pNe9xYd'; // Your FMP API key - MISE À JOUR ICI
   let url = '';
   let dataPath = '';
   const fixedPeriod = '365d'; // Fixed to 1 year
+
+  // Define formatDate here, accessible to both branches
+  const formatDate = (date) => date.toISOString().split('T')[0];
 
   console.log(`Fetching historical data for ${symbol} (${type}) for period: ${fixedPeriod}`); // Debugging: log request
 
@@ -571,7 +585,6 @@ async function fetchHistoricalData(symbol, type) {
     let startDate = new Date();
     startDate.setFullYear(endDate.getFullYear() - 1); // Fixed to 1 year ago
 
-    const formatDate = (date) => date.toISOString().split('T')[0];
     url = `https://financialmodelingprep.com/api/v3/historical-price-full/${symbol}?from=${formatDate(startDate)}&to=${formatDate(endDate)}&apikey=${apiKey}`;
     dataPath = 'historical';
   }
@@ -691,17 +704,17 @@ function renderChart(historicalData, assetName, ctx, currencyCode) {
   });
 }
 
-// --- Initialization on DOMContentLoaded ---
+// --- Initialisation au chargement du DOM ---
 document.addEventListener('DOMContentLoaded', () => {
-  handleNavigation(); // Initialize navigation and section visibility
-  fetchData(); // First data fetch
+  handleNavigation(); // Initialise la navigation et la visibilité des sections
+  fetchData(); // Première récupération des données
 
-  // Authentication button handler (disabled as requested)
+  // Gestion du bouton d'authentification (désactivé comme demandé)
   document.getElementById('authButton').addEventListener('click', () => {
     console.log("Login button clicked. Login functionality is currently disabled.");
   });
 
-  // Add event listener for the search bar
+  // Ajout de l'écouteur d'événement pour la barre de recherche
   const searchBar = document.querySelector('.search-bar');
   if (searchBar) {
     searchBar.addEventListener('input', (e) => {
@@ -709,13 +722,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Listener for the modal close button
+  // Écouteur pour le bouton de fermeture du modal
   const closeButton = document.querySelector('.close-button');
   if (closeButton) {
     closeButton.addEventListener('click', closeChartModal);
   }
 
-  // Close modal if clicked outside content (on overlay)
+  // Fermer le modal si l'on clique en dehors du contenu (sur l'overlay)
   const chartModal = document.getElementById('chartModal');
   if (chartModal) {
     chartModal.addEventListener('click', (e) => {
@@ -725,33 +738,33 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Table sorting handler (added from previous improvements)
+  // Gestion du tri des tableaux (ajouté des améliorations précédentes)
   document.querySelectorAll('table thead th[data-sort-key]').forEach(header => {
     header.addEventListener('click', () => {
       const tableId = header.closest('table').querySelector('tbody').id;
       const sortKey = header.dataset.sortKey;
       let sortDirection = header.dataset.sortDirection;
 
-      // Determine the new sort direction
+      // Déterminer la nouvelle direction de tri
       if (sortDirection === 'asc') {
         sortDirection = 'desc';
       } else if (sortDirection === 'desc') {
-        sortDirection = 'asc'; // Revert to asc if already desc
+        sortDirection = 'asc'; // Revenir à asc si déjà desc
       } else {
-        sortDirection = 'asc'; // Default to asc
+        sortDirection = 'asc'; // Par défaut à asc
       }
 
-      // Reset sort arrows for all headers in the same table
+      // Réinitialiser les flèches de tri pour tous les en-têtes du même tableau
       header.closest('thead').querySelectorAll('th[data-sort-key]').forEach(th => {
         if (th !== header) {
-          th.dataset.sortDirection = 'none'; // Hide the arrow
+          th.dataset.sortDirection = 'none'; // Masquer la flèche
         }
       });
 
-      // Update the direction for the clicked header
+      // Mettre à jour la direction pour l'en-tête cliqué
       header.dataset.sortDirection = sortDirection;
 
-      // Apply sorting and update the list
+      // Appliquer le tri et mettre à jour la liste
       if (tableId === 'stock-list') {
         updateLists(allFetchedData.stocks, [], allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities, { tableId: tableId, key: sortKey, direction: sortDirection });
       } else if (tableId === 'crypto-list') {
@@ -761,6 +774,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
 
-  // Data refresh interval (approx. every 25 minutes)
+  // Interval de rafraîchissement des données (environ toutes les 25 minutes)
   setInterval(fetchData, 1500000); // 1500000 ms = 25 minutes
 });

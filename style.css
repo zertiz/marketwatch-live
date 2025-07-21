@@ -250,7 +250,7 @@ th[data-sort-direction="none"] .sort-arrow {
 
 /* Utilities */
 .hidden {
-  display: none;
+  display: none !important; /* Ajout de !important */
 }
 
 .content-section {
@@ -340,7 +340,7 @@ th[data-sort-direction="none"] .sort-arrow {
 
 /* Styles pour le modal du graphique */
 .modal {
-  display: flex;
+  display: none !important; /* Ajout de !important */
   position: fixed;
   z-index: 2000;
   left: 0;
