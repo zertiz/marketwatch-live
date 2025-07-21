@@ -26,11 +26,20 @@ let userWatchlist = new Set(); // Stocke les symboles/IDs des éléments dans la
 
 // --- Initialisation Firebase ---
 // Ces variables sont fournies par l'environnement Canvas
+// Assurez-vous que __firebase_config est un objet JSON valide
+const firebaseConfig = (typeof __firebase_config !== 'undefined' && __firebase_config) ? JSON.parse(__firebase_config) : null;
+const initialAuthToken = (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) ? __initial_auth_token : null;
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
 
 async function initializeFirebase() {
+  if (!firebaseConfig) {
+    console.error("Firebase config is missing. Cannot initialize Firebase.");
+    document.getElementById('authButton').textContent = 'Login Error (Config Missing)';
+    document.getElementById('watchlist-loading').textContent = 'Error: Firebase config missing.';
+    return;
+  }
+
   try {
     app = initializeApp(firebaseConfig);
     db = getFirestore(app);
@@ -74,20 +83,24 @@ function getWatchlistCollectionRef() {
     console.error("User not authenticated for watchlist operations.");
     return null;
   }
+  // Utilise le chemin recommandé pour les données privées de l'utilisateur
   return collection(db, `artifacts/${appId}/users/${userId}/watchlists`);
 }
 
 // Écoute les changements en temps réel de la watchlist
 function setupWatchlistListener() {
   const watchlistRef = getWatchlistCollectionRef();
-  if (!watchlistRef) return;
+  if (!watchlistRef) {
+    document.getElementById('my-watchlist').innerHTML = '<li>Please log in to manage your watchlist.</li>';
+    return;
+  }
 
   onSnapshot(watchlistRef, (snapshot) => {
     userWatchlist.clear();
     const watchlistItems = [];
     snapshot.forEach((doc) => {
       const item = doc.data();
-      item.id = doc.id; // Stocke l'ID du document Firestore
+      item.id = doc.id; // Stocke l'ID du document Firestore (qui est uniqueId)
       userWatchlist.add(item.uniqueId); // Utilise uniqueId pour un suivi facile
       watchlistItems.push(item);
     });
@@ -96,14 +109,16 @@ function setupWatchlistListener() {
     updateLists(allFetchedData.stocks, allFetchedData.cryptos, allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities);
   }, (error) => {
     console.error("Erreur d'écoute de la watchlist:", error);
-    document.getElementById('my-watchlist').innerHTML = '<li>Error loading your watchlist.</li>';
+    document.getElementById('my-watchlist').innerHTML = '<li>Error loading your watchlist. Please check console.</li>';
   });
 }
 
 // Ajoute un élément à la watchlist
 async function addToWatchlist(asset) {
   if (!userId) {
-    alert("Please login to add items to your watchlist."); // Using alert for simplicity, consider custom modal
+    // Utiliser une alerte personnalisée ou un message dans l'UI au lieu de window.alert
+    console.warn("Please login to add items to your watchlist.");
+    // Vous pouvez afficher un message temporaire dans l'UI ici
     return;
   }
   const watchlistRef = getWatchlistCollectionRef();
@@ -122,10 +137,11 @@ async function addToWatchlist(asset) {
       name: asset.name,
       symbol: asset.symbol || asset.id, // Pour crypto, l'ID est le symbole
       type: asset.type, // 'stock_fmp' ou 'crypto'
+      uniqueId: uniqueId, // Stocke l'uniqueId aussi dans le document pour faciliter la suppression
       timestamp: new Date()
     });
     console.log(`${asset.name} added to watchlist.`);
-    userWatchlist.add(uniqueId); // Mettre à jour le Set en mémoire
+    // userWatchlist est mis à jour par le listener onSnapshot
   } catch (error) {
     console.error("Error adding to watchlist:", error);
   }
@@ -143,7 +159,7 @@ async function removeFromWatchlist(uniqueId) {
   try {
     await deleteDoc(doc(watchlistRef, uniqueId));
     console.log(`Item ${uniqueId} removed from watchlist.`);
-    userWatchlist.delete(uniqueId); // Mettre à jour le Set en mémoire
+    // userWatchlist est mis à jour par le listener onSnapshot
   } catch (error) {
     console.error("Error removing from watchlist:", error);
   }
@@ -158,11 +174,11 @@ function updateWatchlistUI(watchlistItems) {
     watchlistUl.innerHTML = '<li>Your watchlist is empty. Add some assets!</li>';
   } else {
     watchlistUl.innerHTML = watchlistItems.map(item => {
-      const uniqueId = `${item.symbol}_${item.type}`; // Reconstruire uniqueId
+      // uniqueId est déjà l'ID du document Firestore
       return `
         <li>
           ${item.name}
-          <button class="watchlist-btn added" onclick="removeFromWatchlist('${uniqueId}')" title="Remove from Watchlist">⭐</button>
+          <button class="watchlist-btn added" onclick="removeFromWatchlist('${item.uniqueId}')" title="Remove from Watchlist">⭐</button>
         </li>
       `;
     }).join('');
@@ -793,11 +809,11 @@ function renderChart(historicalData, assetName, ctx) {
       datasets: [{
         label: `Price of ${assetName} (USD)`,
         data: prices,
-        borderColor: '#61dafb',
-        backgroundColor: 'rgba(97, 218, 251, 0.1)',
-        tension: 0.2,
+        borderColor: '#61dafb', // Couleur du graphique bleu clair
+        backgroundColor: 'rgba(97, 218, 251, 0.1)', // Fond du graphique transparent
+        tension: 0.2, // Légère courbure pour un aspect plus doux
         fill: true,
-        pointRadius: 0
+        pointRadius: 0 // Cacher les points individuels
       }]
     },
     options: {
@@ -867,11 +883,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Gestion du bouton d'authentification
   document.getElementById('authButton').addEventListener('click', async () => {
-    if (auth.currentUser) {
+    if (auth && auth.currentUser) { // Vérifie si auth est défini et si un utilisateur est connecté
       await signOut(auth);
-    } else {
-      // Si déconnecté, tente de se reconnecter anonymement
+    } else if (auth) { // Si auth est défini mais pas d'utilisateur connecté
       await signInAnonymously(auth);
+    } else {
+        console.error("Firebase Auth not initialized. Cannot perform login/logout.");
+        // Optionnel: Afficher un message à l'utilisateur
     }
   });
 
