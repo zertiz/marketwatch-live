@@ -52,8 +52,6 @@ async function initializeFirebase() {
     console.error(errorMsg);
     const authButton = document.getElementById('authButton');
     if (authButton) authButton.textContent = 'Login Error (Config Missing)';
-    // const watchlistLoading = document.getElementById('watchlist-loading'); // Retiré car watchlist retirée
-    // if (watchlistLoading) watchlistLoading.textContent = `Error: ${errorMsg}`;
     return;
   }
 
@@ -68,14 +66,11 @@ async function initializeFirebase() {
         console.log("User logged in:", userId);
         const authButton = document.getElementById('authButton');
         if (authButton) authButton.textContent = `Logout (${userId.substring(0, 6)}...)`;
-        // setupWatchlistListener(); // Retiré car watchlist retirée
       } else {
         userId = null;
         console.log("User logged out.");
         const authButton = document.getElementById('authButton');
         if (authButton) authButton.textContent = 'Login';
-        // const watchlistUl = document.getElementById('my-watchlist'); // Retiré car watchlist retirée
-        // if (watchlistUl) watchlistUl.innerHTML = '<li id="watchlist-loading">Connectez-vous pour voir votre watchlist.</li>';
         userWatchlist.clear();
       }
       fetchData();
@@ -93,12 +88,8 @@ async function initializeFirebase() {
     console.error(errorMsg, error);
     const authButton = document.getElementById('authButton');
     if (authButton) authButton.textContent = 'Login Error';
-    // const watchlistLoading = document.getElementById('watchlist-loading'); // Retiré car watchlist retirée
-    // if (watchlistLoading) watchlistLoading.textContent = `Error: ${errorMsg}. Vérifiez la console.`;
   }
 }
-
-// Fonctions de la Watchlist (Firestore) retirées
 
 // --- Fonctions de Récupération et Mise à Jour des Données ---
 
@@ -108,9 +99,8 @@ async function fetchData() {
   const cryptoUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana,cardano,ripple,dogecoin,tron,polkadot,polygon,chainlink';
   const stockUrl = `https://financialmodelingprep.com/api/v3/quote/AAPL,NVDA,MSFT,TSLA,AMZN,META,GOOG,JPM,BAC,V?apikey=${apiKey}`;
   const forexUrl = `https://financialmodelingprep.com/api/v3/quote/EURUSD,USDJPY,GBPUSD,AUDUSD,USDCAD,USDCHF,USDCNY,USDHKD,USDSEK,USDSGD?apikey=${apiKey}`;
-  // Modification temporaire pour les indices pour le débogage:
-  // Utilise un point de terminaison plus simple pour voir si le problème vient de l'URL des indices
-  const indicesUrl = `https://financialmodelingprep.com/api/v3/quotes/index?apikey=${apiKey}`; // Changement ici
+  // Revert de l'URL des indices à sa version originale
+  const indicesUrl = `https://financialmodelingprep.com/api/v3/quote/%5EDJI,%5EIXIC,%5EGSPC,%5EFCHI,%5EGDAXI,%5EFTSE,%5EN225,%5EHSI,%5ESSMI,%5EBVSP?apikey=${apiKey}`;
   const commoditiesUrl = `https://financialmodelingprep.com/api/v3/quote/GCUSD,SIUSD,CLUSD,NGUSD,HGUSD,ALIUSD,PAUSD,PLUSD,KCUSD,SBUSD?apikey=${apiKey}`;
 
   // Display loading messages for main tables
@@ -170,19 +160,10 @@ async function fetchData() {
         console.error("Données de forex invalides ou manquantes. Initialisation à un tableau vide.");
         forexData = [];
     }
-    // Correction pour indicesData: le nouveau point de terminaison renvoie un tableau d'objets avec une clé 'symbol'
-    if (!Array.isArray(indicesData) || indicesData.length === 0) {
+    // Correction pour indicesData: le point de terminaison /quote/ renvoie un tableau d'objets déjà au bon format
+    if (!Array.isArray(indicesData)) {
         console.error("Données d'indices invalides ou manquantes. Initialisation à un tableau vide.");
         indicesData = [];
-    } else {
-        // Le point de terminaison /quotes/index renvoie des objets avec 'symbol', 'name', 'price', 'changesPercentage'
-        // Nous devons nous assurer que les données sont au bon format pour updateIndices
-        indicesData = indicesData.map(item => ({
-            symbol: item.symbol,
-            name: item.name,
-            price: item.price,
-            changesPercentage: item.changesPercentage
-        }));
     }
     if (!Array.isArray(commoditiesData)) {
         console.error("Données de matières premières invalides ou manquantes. Initialisation à un tableau vide.");
@@ -653,12 +634,16 @@ async function fetchHistoricalData(symbol, type) { // 'period' parameter removed
     let startDate = new Date();
     startDate.setFullYear(endDate.getFullYear() - 1); // Fixed to 1 year ago
 
+    // CORRECTION ICI: Changer le '?' en '&' pour la clé API après les paramètres 'from' et 'to'
     url = `https://financialmodelingprep.com/api/v3/historical-price-full/${symbol}?from=${formatDate(startDate)}&to=${formatDate(endDate)}&apikey=${apiKey}`;
     dataPath = 'historical';
   }
 
+  console.log(`[DEBUG] Requête historique URL: ${url}`); // Ajout d'un log pour l'URL complète
+
   try {
     const response = await fetch(url);
+    console.log(`[DEBUG] Réponse API historique - Statut: ${response.status} pour URL: ${url}`); // Log du statut de réponse
     if (!response.ok) { // Check if response status is not 2xx
         const errorText = await response.text();
         console.error(`Erreur API pour les données historiques (${type}, ${symbol}): Statut ${response.status} - ${errorText}`);
@@ -666,6 +651,7 @@ async function fetchHistoricalData(symbol, type) { // 'period' parameter removed
         throw new Error(`Échec de la récupération des données historiques: ${response.statusText || 'Erreur inconnue'}. Vérifiez la clé API et la console.`);
     }
     const data = await response.json();
+    console.log(`[DEBUG] Données brutes reçues pour ${symbol} (${type}):`, data); // Log des données brutes
 
     let historicalPrices = [];
 
