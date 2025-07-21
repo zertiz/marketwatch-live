@@ -145,8 +145,13 @@ async function fetchData() {
           } else if (name === 'forex') {
             tempFetchedData.forex = Array.isArray(data) ? data : [];
           } else if (name === 'indices') {
-            // FMP /quote/ endpoint returns an array, but sometimes might be empty or an object if error
-            tempFetchedData.indices = Array.isArray(data) ? data : [];
+            // Spécifiquement pour les indices, si ce n'est pas un tableau, loggez l'objet entier
+            if (!Array.isArray(data)) {
+                console.error(`[ERROR] Données d'indices reçues non conformes (non un tableau). Objet reçu:`, data);
+                tempFetchedData.indices = []; // Assurez-vous que c'est un tableau vide si non conforme
+            } else {
+                tempFetchedData.indices = data;
+            }
           } else if (name === 'commodities') {
             tempFetchedData.commodities = Array.isArray(data) ? data : [];
           }
@@ -320,11 +325,21 @@ function sortData(data, key, direction) {
 
 // Function to update stock and crypto lists
 function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = {}) {
+  console.log("[DEBUG] updateLists - Données reçues:");
+  console.log("  stocks:", stocks);
+  console.log("  cryptos:", cryptos);
+  console.log("  forex:", forex);
+  console.log("  indices:", indices);
+  console.log("  commodities:", commodities);
+
   const stockListTableBody = document.getElementById('stock-list');
   const cryptoListTableBody = document.getElementById('crypto-list');
   const recList = document.getElementById('recommendations');
 
-  if (!stockListTableBody || !cryptoListTableBody || !recList) return;
+  if (!stockListTableBody || !cryptoListTableBody || !recList) {
+    console.error("[ERROR] updateLists - Éléments du DOM non trouvés.");
+    return;
+  }
 
   // Clear lists before adding new data
   stockListTableBody.innerHTML = '';
@@ -336,9 +351,12 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
   const allNonCryptoAssets = [
     ...(Array.isArray(stocks) ? stocks : []),
     ...(Array.isArray(forex) ? forex : []),
-    ...(Array.isArray(indices) ? indices : []),
+    // Assurez-vous que les indices sont bien des tableaux pour la concaténation
+    ...(Array.isArray(indices) ? indices : []), 
     ...(Array.isArray(commodities) ? commodities : [])
   ];
+  console.log("[DEBUG] updateLists - allNonCryptoAssets (après concaténation):", allNonCryptoAssets);
+
 
   // Apply sorting if a configuration is provided
   let sortedStocks = allNonCryptoAssets;
@@ -349,6 +367,8 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
   } else if (sortConfig.tableId === 'crypto-list') {
       sortedCryptos = sortData(cryptos, sortConfig.key, sortConfig.direction);
   }
+  console.log("[DEBUG] updateLists - sortedStocks (après tri):", sortedStocks);
+  console.log("[DEBUG] updateLists - sortedCryptos (après tri):", sortedCryptos);
 
 
   if (sortedStocks.length === 0) {
@@ -444,8 +464,11 @@ function updateIndices(data) {
   const list = document.getElementById('indices-list');
   if (!list) return;
 
+  console.log("[DEBUG] updateIndices - Données reçues:", data);
+
   if (!Array.isArray(data)) {
     console.error("Les données pour updateIndices ne sont pas un tableau.", data);
+    list.innerHTML = '<li>Aucun indice de marché disponible.</li>'; // Afficher le message si non un tableau
     return;
   }
   
