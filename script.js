@@ -379,7 +379,8 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
   console.log("[DEBUG] updateLists - sortedStocks (après tri):", sortedStocks);
   console.log("[DEBUG] updateLists - sortedCryptos (après tri):", sortedCryptos);
 
-
+  // --- NOUVEAUX LOGS DE DÉBOGAGE ---
+  console.log("[DEBUG] updateLists - Tentative d'affichage des actions. Nombre d'éléments:", sortedStocks.length);
   if (sortedStocks.length === 0) {
       stockListTableBody.innerHTML = `<tr><td colspan="5">Aucune donnée d'actions, de forex, d'indices ou de matières premières disponible.</td></tr>`;
   } else {
@@ -414,7 +415,7 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
       console.log("[DEBUG] stockListTableBody.innerHTML après ajout des lignes:", stockListTableBody.innerHTML); // Log du contenu final
   }
 
-
+  console.log("[DEBUG] updateLists - Tentative d'affichage des cryptos. Nombre d'éléments:", sortedCryptos.length);
   // Data for Crypto table (CoinGecko data - already in USD)
   if (sortedCryptos.length === 0) {
       cryptoListTableBody.innerHTML = `<tr><td colspan="5">Aucune donnée de cryptomonnaie disponible.</td></tr>`;
@@ -459,6 +460,7 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
     ...(Array.isArray(commodities) ? commodities : [])
   ];
 
+  console.log("[DEBUG] updateLists - Tentative d'affichage des recommandations. Nombre d'éléments:", allAssetsForRecommendations.length);
   if (allAssetsForRecommendations.length === 0) {
       recList.innerHTML = '<li>Aucune recommandation disponible.</li>';
   } else {
@@ -489,6 +491,7 @@ function updateIndices(data) {
     return;
   }
   
+  console.log("[DEBUG] updateIndices - Tentative d'affichage des indices. Nombre d'éléments:", data.length);
   if (data.length === 0) {
       list.innerHTML = '<li>Aucun indice de marché disponible.</li>';
   } else {
