@@ -44,8 +44,6 @@ async function fetchData() {
   document.getElementById('recommendations').innerHTML = '<li>Loading recommendations...</li>';
 
   try {
-    // La logique de récupération des taux de change est retirée car seule l'USD est utilisée.
-
     const [cryptoRes, stockRes, forexRes, indicesRes, commoditiesRes] = await Promise.all([
       fetch(cryptoUrl),
       fetch(stockUrl),
@@ -222,8 +220,6 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
   // Clear lists before adding new data
   stockListTableBody.innerHTML = '';
   cryptoListTableBody.innerHTML = '';
-
-  const currencySymbol = getCurrencySymbol(currentCurrency); // Sera toujours '$'
 
   // Data for Stock/Forex/Indices/Commodities table (FMP data)
   const allNonCryptoAssets = [
@@ -558,7 +554,7 @@ async function fetchHistoricalData(symbol, type, period) {
     }
 
     const formatDate = (date) => date.toISOString().split('T')[0];
-    url = `https://financialmodelingprep.com/api/v3/historical-price-full/${symbol}?from=${formatDate(startDate)}&to=${formatDate(endDate)}s&apikey=${apiKey}`;
+    url = `https://financialmodelingprep.com/api/v3/historical-price-full/${symbol}?from=${formatDate(startDate)}&to=${formatDate(endDate)}&apikey=${apiKey}`;
     dataPath = 'historical';
   }
 
@@ -676,12 +672,12 @@ function renderChart(historicalData, assetName, ctx, currencyCode) {
 
 // --- Initialisation au chargement du DOM ---
 document.addEventListener('DOMContentLoaded', () => {
-  // Le sélecteur de devise est toujours là mais n'a qu'une seule option, donc pas d'écouteur de changement nécessaire.
+  // Le sélecteur de devise est retiré, donc plus besoin de l'initialiser ou d'écouter ses changements.
   // const currencySelector = document.getElementById('currencySelector');
   // if (currencySelector) {
   //   currencySelector.value = currentCurrency;
   //   currencySelector.addEventListener('change', (event) => {
-  //     currentCurrency = event.target.value; // Cette ligne ne sera jamais appelée si une seule option
+  //     currentCurrency = event.target.value;
   //     fetchData();
   //   });
   // }

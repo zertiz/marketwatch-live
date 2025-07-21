@@ -66,6 +66,8 @@ body {
   max-width: 300px; /* Limite la largeur sur les grands écrans */
 }
 
+/* Les styles pour .currency-selector sont retirés */
+
 .auth-btn {
   background-color: #61dafb; /* Bouton bleu clair */
   color: #1a1a1a; /* Texte sombre sur bouton clair */
@@ -448,6 +450,13 @@ th {
     margin-right: 0;
     margin-bottom: 10px;
   }
+
+  /* La classe .currency-selector n'existe plus, donc ces styles sont inutiles mais inoffensifs */
+  /* .currency-selector {
+    width: 100%;
+    margin-right: 0;
+    margin-bottom: 10px;
+  } */
 
   .auth-btn {
     width: 100%;
