@@ -525,6 +525,8 @@ async function fetchHistoricalData(symbol, type, period) {
   let url = '';
   let dataPath = '';
 
+  console.log(`Fetching historical data for ${symbol} (${type}) for period: ${period}`); // Debugging: log request
+
   if (type === 'crypto') {
     let days = period;
     if (period === '7d') days = '7';
@@ -561,14 +563,18 @@ async function fetchHistoricalData(symbol, type, period) {
     dataPath = 'historical';
   }
 
+  console.log(`API URL for historical data: ${url}`); // Debugging: log URL
+
   try {
     const response = await fetch(url);
+    console.log(`Response status for ${url}: ${response.status}`); // Debugging: log response status
     if (!response.ok) {
         const errorText = await response.text();
         console.error(`API error for historical data (${type}, ${symbol}, ${period}): Status ${response.status} - ${errorText}`);
         throw new Error(`Failed to fetch historical data: ${response.statusText || 'Unknown error'}. Check API key and console.`);
     }
     const data = await response.json();
+    console.log(`Raw data received for ${symbol} (${type}, ${period}):`, data); // Debugging: log raw data
 
     let historicalPrices = [];
 
