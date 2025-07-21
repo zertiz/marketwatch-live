@@ -713,6 +713,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Interval de rafraîchissement des données (très long ici, ajuster si nécessaire)
-  setInterval(fetchData, 345600);
+  setInterval(fetchData, 300000);
 });
 
