@@ -18,7 +18,6 @@
     </nav>
     <div class="user-actions">
       <input type="text" placeholder="Rechercher..." class="search-bar" />
-      <!-- Le bouton de connexion est conservé mais sans fonctionnalité d'authentification active -->
       <button class="auth-btn" id="authButton">Connexion</button>
     </div>
   </header>
@@ -32,31 +31,36 @@
         </ul>
       </div>
       <div class="sidebar-section">
-        <h3>Recommandations 🔧</h3>
+        <h3>Matières premières 💰</h3>
+        <ul id="commodities-list">
+          <li>Chargement...</li>
+        </ul>
+      </div>
+      <div class="sidebar-section">
+        <h3>Recommandations 💡</h3>
         <ul id="recommendations">
           <li>Chargement...</li>
         </ul>
       </div>
-      <!-- Section Watchlist retirée -->
     </aside>
 
     <main class="main-content">
-      <section id="home" class="card content-section">
-        <h2>Bienvenue sur MarketWatch Live</h2>
-        <p>Utilisez les onglets pour naviguer entre les informations boursières, crypto et actualités financières internationales.</p>
+      <section id="home" class="home-section content-section">
+        <h1>Bienvenue sur MarketWatch Live !</h1>
+        <p>Votre portail pour suivre les marchés financiers en temps réel. Naviguez à travers les sections pour découvrir les dernières données sur les actions, les cryptomonnaies, le forex, les indices et les matières premières, ainsi que les actualités financières.</p>
+        <p>Utilisez la barre de recherche pour trouver rapidement un actif spécifique.</p>
       </section>
 
-      <section id="stocks" class="watchlist card content-section hidden">
-        <h2>Cours des Actions 📉</h2>
-        <table>
+      <section id="stocks" class="market-table card content-section hidden">
+        <h2>Marché Boursier & Forex 📊</h2>
+        <table class="data-table" style="display: table !important;"> <!-- TEMPORARY DEBUG STYLE -->
           <thead>
             <tr>
-              <th>Nom</th>
-              <th>Prix</th>
-              <th>24h %</th>
-              <th>Cap.</th>
+              <th data-sort-key="name" data-sort-direction="asc">Nom <span class="sort-arrow"></span></th>
+              <th data-sort-key="price" data-sort-direction="asc">Prix <span class="sort-arrow"></span></th>
+              <th data-sort-key="changesPercentage" data-sort-direction="asc">Change % <span class="sort-arrow"></span></th>
+              <th data-sort-key="marketCap" data-sort-direction="asc">Cap. <span class="sort-arrow"></span></th>
               <th>Conseil</th>
-              <!-- Colonne "Action" retirée -->
             </tr>
           </thead>
           <tbody id="stock-list">
@@ -65,17 +69,16 @@
         </table>
       </section>
 
-      <section id="crypto" class="watchlist card content-section hidden">
-        <h2>Cours des Cryptomonnaies 💰</h2>
-        <table>
+      <section id="crypto" class="market-table card content-section hidden">
+        <h2>Cryptomonnaies ₿</h2>
+        <table class="data-table" style="display: table !important;"> <!-- TEMPORARY DEBUG STYLE -->
           <thead>
             <tr>
-              <th>Nom</th>
-              <th>Prix</th>
-              <th>24h %</th>
-              <th>Cap. <span class="sort-arrow"></span></th>
+              <th data-sort-key="name" data-sort-direction="asc">Nom <span class="sort-arrow"></span></th>
+              <th data-sort-key="current_price" data-sort-direction="asc">Prix <span class="sort-arrow"></span></th>
+              <th data-sort-key="price_change_percentage_24h" data-sort-direction="asc">24h % <span class="sort-arrow"></span></th>
+              <th data-sort-key="market_cap" data-sort-direction="asc">Cap. <span class="sort-arrow"></span></th>
               <th>Conseil</th>
-              <!-- Colonne "Action" retirée -->
             </tr>
           </thead>
           <tbody id="crypto-list">
@@ -93,17 +96,16 @@
     </main>
   </div>
 
-  <!-- Modal pour le graphique -->
+  <!-- Modal for the chart -->
   <div id="chartModal" class="modal hidden">
     <div class="modal-content">
-      <span class="close-button">&times;</span>
+      <span class="close-button" id="closeButton">&times;</span>
       <h2 id="chartTitle"></h2>
-      <p id="chartLoading" class="loading-message">Chargement du graphique...</p>
       <p id="chartError" class="error-message hidden"></p>
       
-      <!-- Sélecteur de période du graphique (retiré car l'utilisateur veut une courbe simple) -->
+      <!-- Sélecteur de période du graphique (sera masqué par JS) -->
       <div id="chartPeriodSelector" class="chart-period-selector hidden">
-        <!-- Les boutons ne seront plus générés par JavaScript -->
+        <!-- Les boutons seront générés par JavaScript si besoin, mais ici ils sont masqués -->
       </div>
 
       <div class="chart-container">
@@ -112,12 +114,12 @@
     </div>
   </div>
 
-  <!-- Import de Chart.js -->
+  <!-- Chart.js Import -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- IMPORTANT: type="module" est nécessaire pour les imports ES6 de Firebase (même si Firebase est retiré, c'est une bonne pratique) -->
-  <script src="script.js" type="module"></script>
+  <!-- Script principal de votre application -->
+  <script src="script.js"></script>
 </body>
-</html
+</html>
 
 
 
