@@ -18,7 +18,7 @@
     </nav>
     <div class="user-actions">
       <input type="text" placeholder="Rechercher..."" class="search-bar" />
-      <!-- L'ID 'authButton' est crucial pour le JS -->
+      <!-- Le bouton de connexion est conservé mais sans fonctionnalité d'authentification active -->
       <button class="auth-btn" id="authButton">Connexion</button>
     </div>
   </header>
@@ -37,13 +37,7 @@
           <li>Chargement...</li>
         </ul>
       </div>
-      <!-- Nouvelle section pour la liste de suivi de l'utilisateur -->
-      <div class="sidebar-section">
-        <h3>Ma Watchlist ⭐</h3>
-        <ul id="my-watchlist">
-          <li id="watchlist-loading">Connectez-vous pour voir votre watchlist.</li>
-        </ul>
-      </div>
+      <!-- Section Watchlist retirée -->
     </aside>
 
     <main class="main-content">
@@ -62,11 +56,11 @@
               <th>24h %</th>
               <th>Cap.</th>
               <th>Conseil</th>
-              <th>Action</th> <!-- Nouvelle colonne pour l'action Watchlist -->
+              <!-- Colonne "Action" retirée -->
             </tr>
           </thead>
           <tbody id="stock-list">
-            <tr><td colspan="6">Chargement...</td></tr>
+            <tr><td colspan="5">Chargement...</td></tr>
           </tbody>
         </table>
       </section>
@@ -79,13 +73,13 @@
               <th>Nom</th>
               <th>Prix</th>
               <th>24h %</th>
-              <th>Cap.</th>
+              <th>Cap. <span class="sort-arrow"></span></th>
               <th>Conseil</th>
-              <th>Action</th> <!-- Nouvelle colonne pour l'action Watchlist -->
+              <!-- Colonne "Action" retirée -->
             </tr>
           </thead>
           <tbody id="crypto-list">
-            <tr><td colspan="6">Chargement...</td></tr>
+            <tr><td colspan="5">Chargement...</td></tr>
           </tbody>
         </table>
       </section>
@@ -104,9 +98,13 @@
     <div class="modal-content">
       <span class="close-button">&times;</span>
       <h2 id="chartTitle"></h2>
-      <!-- L'ID 'chartLoading' est crucial pour le JS -->
       <p id="chartLoading" class="loading-message">Chargement du graphique...</p>
-      <p id="chartError" class="error-message hidden"></p> 
+      <p id="chartError" class="error-message hidden"></p>
+      
+      <!-- Sélecteur de période du graphique (retiré car l'utilisateur veut une courbe simple) -->
+      <div id="chartPeriodSelector" class="chart-period-selector hidden">
+        <!-- Les boutons ne seront plus générés par JavaScript -->
+      </div>
 
       <div class="chart-container">
         <canvas id="historicalChart"></canvas>
@@ -116,7 +114,7 @@
 
   <!-- Import de Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- IMPORTANT: type="module" est nécessaire pour les imports ES6 de Firebase -->
+  <!-- IMPORTANT: type="module" est nécessaire pour les imports ES6 de Firebase (même si Firebase est retiré, c'est une bonne pratique) -->
   <script src="script.js" type="module"></script>
 </body>
 </html>
