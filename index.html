@@ -89,6 +89,22 @@
     </main>
   </div>
 
+  <!-- Modal pour le graphique -->
+  <div id="chartModal" class="modal hidden">
+    <div class="modal-content">
+      <span class="close-button">&times;</span>
+      <h2 id="chartTitle"></h2>
+      <p id="chartLoading" class="loading-message">Chargement du graphique...</p>
+      <p id="chartError" class="error-message hidden"></p>
+      <div class="chart-container">
+        <canvas id="historicalChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import de Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
+

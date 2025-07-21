@@ -181,8 +181,10 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
     const recommendation = change > 3 ? 'Acheter' : change < -3 ? 'Vendre' : 'Conserver';
     const changeClass = isGain ? 'gain' : 'loss';
 
+    // Ajout d'un attribut data-symbol et data-type pour le clic
+    // Utilisez asset.symbol pour FMP, et un type générique comme 'stock_fmp' pour les distinguer
     const row = `
-      <tr>
+      <tr onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')">
         <td>${asset.name}</td>
         <td>$${price.toLocaleString()}</td>
         <td class="${changeClass}">${change.toFixed(2)}%</td>
@@ -202,8 +204,9 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
     const recommendation = change > 3 ? 'Acheter' : change < -3 ? 'Vendre' : 'Conserver';
     const changeClass = isGain ? 'gain' : 'loss';
 
+    // Ajout d'un attribut data-symbol et data-type pour le clic (utiliser asset.id pour crypto CoinGecko)
     const row = `
-      <tr>
+      <tr onclick="showChartModal('${asset.id}', 'crypto', '${asset.name}')">
         <td>${asset.name}</td>
         <td>$${price.toLocaleString()}</td>
         <td class="${changeClass}">${change.toFixed(2)}%</td>
@@ -286,7 +289,7 @@ function performSearch(query) {
     asset.name.toLowerCase().includes(lowerCaseQuery) || asset.symbol.toLowerCase().includes(lowerCaseQuery)
   );
   const filteredCryptos = allFetchedData.cryptos.filter(asset =>
-    asset.name.toLowerCase().includes(lowerCaseQuery) || asset.symbol?.toLowerCase().includes(lowerCaseQuery)
+    asset.name.toLowerCase().includes(lowerCaseQuery) || asset.symbol?.toLowerCase().includes(lowerCaseQuery) || asset.id?.toLowerCase().includes(lowerCaseQuery)
   );
   const filteredForex = allFetchedData.forex.filter(asset =>
     asset.name.toLowerCase().includes(lowerCaseQuery) || asset.symbol.toLowerCase().includes(lowerCaseQuery)
@@ -346,6 +349,155 @@ function handleNavigation() {
   });
 }
 
+// Variables pour le graphique
+let myChart; // Pour stocker l'instance du graphique Chart.js
+
+// Fonction pour afficher le modal du graphique
+async function showChartModal(symbol, type, name) {
+  const modal = document.getElementById('chartModal');
+  const chartTitle = document.getElementById('chartTitle');
+  const chartLoading = document.getElementById('chartLoading');
+  const chartError = document.getElementById('chartError');
+  const chartCanvas = document.getElementById('historicalChart');
+  const ctx = chartCanvas.getContext('2d');
+
+  chartTitle.textContent = `Graphique de l'évolution de ${name}`;
+  chartLoading.classList.remove('hidden');
+  chartError.classList.add('hidden');
+  modal.classList.remove('hidden'); // Afficher le modal
+
+  // Détruire l'ancien graphique s'il existe
+  if (myChart) {
+    myChart.destroy();
+  }
+
+  try {
+    const historicalData = await fetchHistoricalData(symbol, type);
+
+    if (historicalData && historicalData.length > 0) {
+      renderChart(historicalData, name, ctx);
+      chartLoading.classList.add('hidden');
+    } else {
+      chartLoading.classList.add('hidden');
+      chartError.classList.remove('hidden');
+      chartError.textContent = "Aucune donnée historique disponible pour cet actif.";
+    }
+  } catch (error) {
+    console.error("Erreur lors du chargement des données historiques :", error);
+    chartLoading.classList.add('hidden');
+    chartError.classList.remove('hidden');
+    chartError.textContent = "Erreur lors du chargement des données historiques. Veuillez réessayer plus tard.";
+  }
+}
+
+// Fonction pour fermer le modal du graphique
+function closeChartModal() {
+  document.getElementById('chartModal').classList.add('hidden');
+  if (myChart) {
+    myChart.destroy(); // Détruire le graphique pour libérer les ressources
+  }
+}
+
+// Fonction pour récupérer les données historiques
+async function fetchHistoricalData(symbol, type) {
+  const apiKey = '86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS'; // Votre clé API FMP
+  let url = '';
+  let dataPath = ''; // Pour savoir où se trouvent les données de prix dans la réponse
+
+  if (type === 'crypto') {
+    // CoinGecko utilise un ID unique pour chaque crypto (ex: 'bitcoin')
+    // Le 'symbol' passé ici est déjà l'ID de CoinGecko
+    url = `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=30`; // Données sur 30 jours
+    dataPath = 'prices'; // Les données de prix sont sous la clé 'prices'
+  } else {
+    // Pour les actions, forex, indices, commodities (Financial Modeling Prep)
+    // Utilisation de l'endpoint 'historical-price-full'
+    url = `https://financialmodelingprep.com/api/v3/historical-price-full/${symbol}?apikey=${apiKey}`;
+    dataPath = 'historical'; // Les données historiques sont sous la clé 'historical'
+  }
+
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (type === 'crypto' && data[dataPath]) {
+      // CoinGecko renvoie un tableau de [timestamp, price]
+      return data[dataPath].map(item => ({
+        date: new Date(item[0]).toLocaleDateString('fr-FR'),
+        price: item[1]
+      }));
+    } else if (data[dataPath]) {
+      // FMP renvoie un tableau d'objets avec 'date' et 'close'
+      // Nous voulons les données les plus récentes en premier, donc inverser
+      return data[dataPath].map(item => ({
+        date: item.date,
+        price: item.close
+      })).reverse(); // Inverser pour avoir les dates dans l'ordre croissant
+    } else {
+      console.warn(`Aucune donnée historique trouvée pour ${symbol} (${type}). Réponse de l'API:`, data);
+      return [];
+    }
+  } catch (error) {
+    console.error(`Erreur lors de la récupération des données historiques pour ${symbol} (${type}):`, error);
+    return [];
+  }
+}
+
+// Fonction pour rendre le graphique avec Chart.js
+function renderChart(historicalData, assetName, ctx) {
+  const labels = historicalData.map(data => data.date);
+  const prices = historicalData.map(data => data.price);
+
+  myChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: `Prix de ${assetName} (USD)`,
+        data: prices,
+        borderColor: '#007bff',
+        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+        tension: 0.1,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false, // Permet au graphique de s'adapter à la taille du canvas
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: 'Date'
+          }
+        },
+        y: {
+          title: {
+            display: true,
+            text: 'Prix (USD)'
+          }
+        }
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let label = context.dataset.label || '';
+              if (label) {
+                label += ': ';
+              }
+              if (context.parsed.y !== null) {
+                label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
+              }
+              return label;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
 // Initialisation de la navigation et récupération des données au chargement du DOM
 document.addEventListener('DOMContentLoaded', () => {
   handleNavigation();
@@ -357,6 +509,23 @@ document.addEventListener('DOMContentLoaded', () => {
       performSearch(e.target.value);
     });
   }
+
+  // Écouteur pour le bouton de fermeture du modal
+  const closeButton = document.querySelector('.close-button');
+  if (closeButton) {
+    closeButton.addEventListener('click', closeChartModal);
+  }
+
+  // Fermer le modal si l'on clique en dehors du contenu (sur l'overlay)
+  const chartModal = document.getElementById('chartModal');
+  if (chartModal) {
+    chartModal.addEventListener('click', (e) => {
+      if (e.target === chartModal) {
+        closeChartModal();
+      }
+    });
+  }
+
   // Intervalle de rafraîchissement des données (très long ici, ajuster si nécessaire)
   setInterval(fetchData, 1000000);
 });
