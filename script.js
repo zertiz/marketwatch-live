@@ -1,25 +1,31 @@
 async function fetchData() {
-  const cryptoUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum');
-  const stockUrl = 'https://financialmodelingprep.com/api/v3/quote/AAPL,NVDA,MSFT,TSLA?apikey=GKTmxyXWbKpCSjj67xYW9xf7pPK86ALi';
-  const commoditiesUrl = 'https://financialmodelingprep.com/api/v3/quote/GCUSD,CLUSD,NGUSD?apikey=GKTmxyXWbKpCSjj67xYW9xf7pPK86ALi';
+  const cryptoUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana,cardano,ripple,dogecoin,tron,polkadot,polygon,chainlink';
+  const stockUrl = 'https://financialmodelingprep.com/api/v3/quote/AAPL,NVDA,MSFT,TSLA,AMZN,META,GOOG,JPM,BAC,V';
+  const forexUrl = 'https://financialmodelingprep.com/api/v3/quote/EURUSD,USDJPY,GBPUSD,AUDUSD,USDCAD,USDCHF,USDCNY,USDHKD,USDSEK,USDSGD';
+  const indicesUrl = 'https://financialmodelingprep.com/api/v3/quote/^DJI,^IXIC,^GSPC,^FCHI,^GDAXI,^FTSE,^N225,^HSI,^SSMI,^BVSP';
+  const commoditiesUrl = 'https://financialmodelingprep.com/api/v3/quote/GCUSD,SIUSD,CLUSD,NGUSD,HGUSD,ALIUSD,PAUSD,PLUSD,KCUSD,SBUSD';
 
   try {
-    const [cryptoRes, stockRes, commoditiesRes] = await Promise.all([
+    const [cryptoRes, stockRes, forexRes, indicesRes, commoditiesRes] = await Promise.all([
       fetch(cryptoUrl),
       fetch(stockUrl),
+      fetch(forexUrl),
+      fetch(indicesUrl),
       fetch(commoditiesUrl)
     ]);
 
     const cryptoData = await cryptoRes.json();
     const stockData = await stockRes.json();
+    const forexData = await forexRes.json();
+    const indicesData = await indicesRes.json();
     const commoditiesData = await commoditiesRes.json();
 
     if (!Array.isArray(stockData) || !Array.isArray(cryptoData)) {
       throw new Error("Données de bourse ou crypto invalides");
     }
 
-      updateLists(stockData, cryptoData, commoditiesData);
-    updateIndices([...stockData, ...commoditiesData]);
+    updateLists(stockData, cryptoData, forexData, indicesData, commoditiesData);
+    updateIndices([...indicesData, ...commoditiesData]);
   } catch (error) {
     console.error("Erreur lors du chargement des données :", error);
   }
@@ -101,7 +107,7 @@ async function fetchNews() {
 }
 
 
-function updateLists(stocks, cryptos, commodities) {
+function updateLists(stocks, cryptos, forex, indices, commodities) {
   const stockList = document.getElementById('stock-list');
   const cryptoList = document.getElementById('crypto-list');
   const recList = document.getElementById('recommendations');
@@ -111,12 +117,12 @@ function updateLists(stocks, cryptos, commodities) {
   stockList.innerHTML = '';
   cryptoList.innerHTML = '';
 
-  const allAssets = [...stocks, ...cryptos, ...commodities];
+  const allAssets = [...stocks, ...cryptos, ...forex, ...indices, ...commodities];
 
   allAssets.forEach(asset => {
-    const change = asset.price_change_percentage_24h ?? asset.changesPercentage;
-    const price = asset.current_price ?? asset.price;
-    const cap = asset.market_cap ?? asset.marketCap;
+    const change = asset.price_change_percentage_24h ?? asset.changesPercentage ?? 0;
+    const price = asset.current_price ?? asset.price ?? 0;
+    const cap = asset.market_cap ?? asset.marketCap ?? 0;
     const isGain = change >= 0;
     const recommendation = change > 3 ? 'Acheter' : change < -3 ? 'Vendre' : 'Conserver';
     const changeClass = isGain ? 'gain' : 'loss';
@@ -126,15 +132,17 @@ function updateLists(stocks, cryptos, commodities) {
         <td>${asset.name}</td>
         <td>$${price.toLocaleString()}</td>
         <td class="${changeClass}">${change.toFixed(2)}%</td>
-        <td>$${(cap / 1e9).toFixed(1)}B</td>
+        <td>${cap ? '$' + (cap / 1e9).toFixed(1) + 'B' : 'N/A'}</td>
         <td>${recommendation}</td>
       </tr>
     `;
+ const isCrypto = ['BTC', 'ETH', 'SOL', 'ADA', 'XRP', 'DOGE', 'TRX', 'DOT', 'MATIC', 'LINK'].includes(asset.symbol?.toUpperCase());
+    const isForex = asset.symbol?.length === 6 && /^[A-Z]{6}$/.test(asset.symbol);
+    const isIndex = asset.symbol?.startsWith('^');
+    const isCommodity = ['GCUSD','SIUSD','CLUSD','NGUSD','HGUSD','ALIUSD','PAUSD','PLUSD','KCUSD','SBUSD'].includes(asset.symbol);
 
-    if (asset.symbol && ['BTC', 'ETH', 'XRP', 'SOL', 'ADA'].includes(asset.symbol?.toUpperCase())) {
+    if (isCrypto) {
       cryptoList.innerHTML += row;
-    } else if (['GCUSD', 'CLUSD', 'NGUSD'].includes(asset.symbol)) {
-      stockList.innerHTML += row; // Afficher les commodities avec les actions
     } else {
       stockList.innerHTML += row;
     }
