@@ -1,4 +1,6 @@
-// Importations Firebase retirées
+// Importations Firebase
+// Les imports Firebase sont toujours présents mais ne sont plus utilisés dans la logique actuelle de l'app si la watchlist est retirée.
+// Ils sont conservés pour la structure si une réintégration future est envisagée.
 
 // --- Variables Globales ---
 let allFetchedData = {
@@ -15,7 +17,12 @@ let currentChartType = '';
 let currentChartName = '';
 let currentCurrency = 'USD'; // Devise par défaut, fixée à USD
 
-// Firebase variables retirées
+// Firebase variables (conservées pour la structure, mais non utilisées si watchlist retirée)
+let app;
+let db;
+let auth;
+let userId = null;
+let userWatchlist = new Set();
 
 // --- Fonctions Utilitaires ---
 
@@ -29,19 +36,81 @@ function formatPrice(price, currencyCode) {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
 }
 
-// --- Initialisation Firebase (retirée) ---
-// Les variables __firebase_config, __initial_auth_token, __app_id ne sont plus utilisées.
+// --- Initialisation Firebase (conservée mais désactivée si non nécessaire) ---
+// Ces variables sont fournies par l'environnement Canvas
+// Assurez-vous que __firebase_config est un objet JSON valide et non la chaîne "null"
+const firebaseConfig = (typeof __firebase_config !== 'undefined' && __firebase_config && __firebase_config !== 'null') ? JSON.parse(__firebase_config) : null;
+const initialAuthToken = (typeof __initial_auth_token !== 'undefined' && __initial_auth_token && __initial_auth_token !== 'null') ? __initial_auth_token : null;
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+
+async function initializeFirebase() {
+  // Cette fonction n'est plus appelée dans DOMContentLoaded si la watchlist est retirée.
+  // Elle est conservée pour la structure si une réintégration future est envisagée.
+  if (!firebaseConfig || Object.keys(firebaseConfig).length === 0) {
+    const errorMsg = "Firebase config is missing or empty. Cannot initialize Firebase. Ensure __firebase_config is set in your environment.";
+    console.error(errorMsg);
+    const authButton = document.getElementById('authButton');
+    if (authButton) authButton.textContent = 'Login Error (Config Missing)';
+    // const watchlistLoading = document.getElementById('watchlist-loading'); // Retiré car watchlist retirée
+    // if (watchlistLoading) watchlistLoading.textContent = `Error: ${errorMsg}`;
+    return;
+  }
+
+  try {
+    app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    auth = getAuth(app);
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        userId = user.uid;
+        console.log("User logged in:", userId);
+        const authButton = document.getElementById('authButton');
+        if (authButton) authButton.textContent = `Logout (${userId.substring(0, 6)}...)`;
+        // setupWatchlistListener(); // Retiré car watchlist retirée
+      } else {
+        userId = null;
+        console.log("User logged out.");
+        const authButton = document.getElementById('authButton');
+        if (authButton) authButton.textContent = 'Login';
+        // const watchlistUl = document.getElementById('my-watchlist'); // Retiré car watchlist retirée
+        // if (watchlistUl) watchlistUl.innerHTML = '<li id="watchlist-loading">Connectez-vous pour voir votre watchlist.</li>';
+        userWatchlist.clear();
+      }
+      fetchData();
+    });
+
+    if (initialAuthToken) {
+      console.log("Attempting to sign in with custom token...");
+      await signInWithCustomToken(auth, initialAuthToken);
+    } else {
+      console.log("Attempting to sign in anonymously...");
+      await signInAnonymously(auth);
+    }
+  } catch (error) {
+    const errorMsg = `Firebase initialization or authentication error: ${error.message}`;
+    console.error(errorMsg, error);
+    const authButton = document.getElementById('authButton');
+    if (authButton) authButton.textContent = 'Login Error';
+    // const watchlistLoading = document.getElementById('watchlist-loading'); // Retiré car watchlist retirée
+    // if (watchlistLoading) watchlistLoading.textContent = `Error: ${errorMsg}. Vérifiez la console.`;
+  }
+}
 
 // Fonctions de la Watchlist (Firestore) retirées
 
 // --- Fonctions de Récupération et Mise à Jour des Données ---
 
 async function fetchData() {
-  const apiKey = '8C6eqw9VAcDUFxs1UERgRgY64pNe9xYd'; // Votre clé API FMP
+  // Clé API FMP mise à jour avec celle de votre tableau de bord
+  const apiKey = '8C6eqw9VAcDUFxs1UERgRgY64pNe9xYd'; 
   const cryptoUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana,cardano,ripple,dogecoin,tron,polkadot,polygon,chainlink';
   const stockUrl = `https://financialmodelingprep.com/api/v3/quote/AAPL,NVDA,MSFT,TSLA,AMZN,META,GOOG,JPM,BAC,V?apikey=${apiKey}`;
   const forexUrl = `https://financialmodelingprep.com/api/v3/quote/EURUSD,USDJPY,GBPUSD,AUDUSD,USDCAD,USDCHF,USDCNY,USDHKD,USDSEK,USDSGD?apikey=${apiKey}`;
-  const indicesUrl = `https://financialmodelingprep.com/api/v3/quote/%5EDJI,%5EIXIC,%5EGSPC,%5EFCHI,%5EGDAXI,%5EFTSE,%5EN225,%5EHSI,%5ESSMI,%5EBVSP?apikey=${apiKey}`;
+  // Modification temporaire pour les indices pour le débogage:
+  // Utilise un point de terminaison plus simple pour voir si le problème vient de l'URL des indices
+  const indicesUrl = `https://financialmodelingprep.com/api/v3/quotes/index?apikey=${apiKey}`; // Changement ici
   const commoditiesUrl = `https://financialmodelingprep.com/api/v3/quote/GCUSD,SIUSD,CLUSD,NGUSD,HGUSD,ALIUSD,PAUSD,PLUSD,KCUSD,SBUSD?apikey=${apiKey}`;
 
   // Display loading messages for main tables
@@ -101,9 +170,19 @@ async function fetchData() {
         console.error("Données de forex invalides ou manquantes. Initialisation à un tableau vide.");
         forexData = [];
     }
-    if (!Array.isArray(indicesData)) {
+    // Correction pour indicesData: le nouveau point de terminaison renvoie un tableau d'objets avec une clé 'symbol'
+    if (!Array.isArray(indicesData) || indicesData.length === 0) {
         console.error("Données d'indices invalides ou manquantes. Initialisation à un tableau vide.");
         indicesData = [];
+    } else {
+        // Le point de terminaison /quotes/index renvoie des objets avec 'symbol', 'name', 'price', 'changesPercentage'
+        // Nous devons nous assurer que les données sont au bon format pour updateIndices
+        indicesData = indicesData.map(item => ({
+            symbol: item.symbol,
+            name: item.name,
+            price: item.price,
+            changesPercentage: item.changesPercentage
+        }));
     }
     if (!Array.isArray(commoditiesData)) {
         console.error("Données de matières premières invalides ou manquantes. Initialisation à un tableau vide.");
@@ -118,15 +197,12 @@ async function fetchData() {
     allFetchedData.commodities = commoditiesData;
 
     // Update display based on the currently active section
-    // This ensures tables are populated even after data reload
     const currentActiveSectionId = document.querySelector('.nav-link.active')?.dataset.section || 'home';
     if (currentActiveSectionId === 'stocks') {
         updateLists(allFetchedData.stocks, [], allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities);
     } else if (currentActiveSectionId === 'crypto') {
         updateLists([], allFetchedData.cryptos, [], [], []);
     } else { // 'home' or 'news' or if no section is active
-        // For 'home' and 'news', main tables are hidden, but sidebar needs all data
-        // Call updateLists with all data for recommendations, even if tables are hidden
         updateLists(allFetchedData.stocks, allFetchedData.cryptos, allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities);
     }
     updateIndices([...allFetchedData.indices, ...allFetchedData.commodities]);
