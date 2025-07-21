@@ -402,6 +402,7 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
         `;
         stockListTableBody.innerHTML += row;
       });
+      console.log("[DEBUG] stockListTableBody.innerHTML après ajout des lignes:", stockListTableBody.innerHTML); // Log du contenu final
   }
 
 
@@ -418,7 +419,7 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
         if (change > 3) {
           recommendation = '📈 Acheter';
         } else if (change < -3) {
-          recommendation = '📉 Vendre';
+          recommendation = '� Vendre';
         } else {
           recommendation = '🤝 Conserver';
         }
@@ -436,6 +437,7 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
         `;
         cryptoListTableBody.innerHTML += row;
       });
+      console.log("[DEBUG] cryptoListTableBody.innerHTML après ajout des lignes:", cryptoListTableBody.innerHTML); // Log du contenu final
   }
 
 
