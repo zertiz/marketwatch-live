@@ -723,40 +723,6 @@ function renderChart(historicalData, assetName, ctx, currencyCode) {
   });
 }
 
-/**
- * Gère le basculement entre le mode sombre et le mode clair.
- * Sauvegarde la préférence dans le localStorage.
- */
-function toggleTheme() {
-  const body = document.body;
-  const themeToggleBtn = document.getElementById('theme-toggle');
-  
-  if (body.classList.contains('light-mode')) {
-    body.classList.remove('light-mode');
-    localStorage.setItem('theme', 'dark');
-    themeToggleBtn.textContent = '☀️'; // Icône pour passer au mode clair
-  } else {
-    body.classList.add('light-mode');
-    localStorage.setItem('theme', 'light');
-    themeToggleBtn.textContent = '🌙'; // Icône pour passer au mode sombre
-  }
-}
-
-// --- Initialisation au chargement du DOM ---
-document.addEventListener('DOMContentLoaded', () => {
-  // Appliquer le thème sauvegardé ou le thème par défaut
-  const savedTheme = localStorage.getItem('theme');
-  const body = document.body;
-  const themeToggleBtn = document.getElementById('theme-toggle');
-
-  if (savedTheme === 'light') {
-    body.classList.add('light-mode');
-    themeToggleBtn.textContent = '🌙';
-  } else {
-    body.classList.remove('light-mode'); // Assure que le mode sombre est par défaut
-    themeToggleBtn.textContent = '☀️';
-  }
-
   handleNavigation(); // Initialise la navigation et la visibilité des sections
   fetchData(); // Première récupération des données
 
@@ -832,5 +798,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Interval de rafraîchissement des données (environ toutes les 23 minutes pour 250 requêtes FMP/jour)
   setInterval(fetchData, 1382400); // 1382400 ms = 23.04 minutes
-});
+
 
