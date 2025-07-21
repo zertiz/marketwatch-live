@@ -11,36 +11,15 @@ let myChart; // Pour stocker l'instance du graphique Chart.js
 let currentChartSymbol = '';
 let currentChartType = '';
 let currentChartName = '';
-let currentCurrency = 'USD'; // Devise par défaut
-let exchangeRates = {}; // Stocke les taux de change (ex: EURUSD, GBPUSD)
-
-// --- Fonctions Utilitaires ---
-
-// Fonction pour obtenir le symbole de la devise
-function getCurrencySymbol(currencyCode) {
-    switch (currencyCode) {
-        case 'USD': return '$';
-        case 'EUR': return '€';
-        case 'GBP': return '£';
-        case 'JPY': return '¥';
-        default: return '';
-    }
-}
-
-// Fonction pour formater un prix dans la devise choisie
-function formatPrice(price, currencyCode) {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: currencyCode }).format(price);
-}
 
 // --- Fonctions de Récupération et Mise à Jour des Données ---
 
 async function fetchData() {
-  const apiKey = '86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS'; // Your FMP API key
-  const cryptoUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currentCurrency.toLowerCase()}&ids=bitcoin,ethereum,solana,cardano,ripple,dogecoin,tron,polkadot,polygon,chainlink`;
-  const stockUrl = `https://financialmodelingprep.com/api/v3/quote/AAPL,NVDA,MSFT,TSLA,AMZN,META,GOOG,JPM,BAC,V?apikey=${apiKey}`;
-  const forexUrl = `https://financialmodelingprep.com/api/v3/quote/EURUSD,USDJPY,GBPUSD,AUDUSD,USDCAD,USDCHF,USDCNY,USDHKD,USDSEK,USDSGD?apikey=${apiKey}`;
-  const indicesUrl = `https://financialmodelingprep.com/api/v3/quote/%5EDJI,%5EIXIC,%5EGSPC,%5EFCHI,%5EGDAXI,%5EFTSE,%5EN225,%5EHSI,%5ESSMI,%5EBVSP?apikey=${apiKey}`;
-  const commoditiesUrl = `https://financialmodelingprep.com/api/v3/quote/GCUSD,SIUSD,CLUSD,NGUSD,HGUSD,ALIUSD,PAUSD,PLUSD,KCUSD,SBUSD?apikey=${apiKey}`;
+  const cryptoUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana,cardano,ripple,dogecoin,tron,polkadot,polygon,chainlink';
+  const stockUrl = 'https://financialmodelingprep.com/api/v3/quote/AAPL,NVDA,MSFT,TSLA,AMZN,META,GOOG,JPM,BAC,V?apikey=86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS';
+  const forexUrl = 'https://financialmodelingprep.com/api/v3/quote/EURUSD,USDJPY,GBPUSD,AUDUSD,USDCAD,USDCHF,USDCNY,USDHKD,USDSEK,USDSGD?apikey=86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS';
+  const indicesUrl = 'https://financialmodelingprep.com/api/v3/quote/%5EDJI,%5EIXIC,%5EGSPC,%5EFCHI,%5EGDAXI,%5EFTSE,%5EN225,%5EHSI,%5ESSMI,%5EBVSP?apikey=86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS';
+  const commoditiesUrl = 'https://financialmodelingprep.com/api/v3/quote/GCUSD,SIUSD,CLUSD,NGUSD,HGUSD,ALIUSD,PAUSD,PLUSD,KCUSD,SBUSD?apikey=86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS';
 
   // Display loading messages for main tables
   document.getElementById('stock-list').innerHTML = '<tr><td colspan="5">Loading stock data...</td></tr>';
@@ -48,37 +27,8 @@ async function fetchData() {
   document.getElementById('indices-list').innerHTML = '<li>Loading market indices...</li>';
   document.getElementById('recommendations').innerHTML = '<li>Loading recommendations...</li>';
 
+
   try {
-    // Fetch exchange rates first if not USD
-    if (currentCurrency !== 'USD') {
-        const exchangeRateUrl = `https://financialmodelingprep.com/api/v3/quote/${currentCurrency}USD?apikey=${apiKey}`;
-        const usdToCurrencyUrl = `https://financialmodelingprep.com/api/v3/quote/USD${currentCurrency}?apikey=${apiKey}`;
-        
-        const [exchangeRes, usdToCurrencyRes] = await Promise.all([
-            fetch(exchangeRateUrl),
-            fetch(usdToCurrencyUrl)
-        ]);
-
-        const exchangeData = await exchangeRes.json();
-        const usdToCurrencyData = await usdToCurrencyRes.json();
-
-        if (exchangeData && exchangeData.length > 0 && exchangeData[0].price) {
-            exchangeRates[`${currentCurrency}USD`] = exchangeData[0].price; // Ex: EURUSD = 1.08
-        } else {
-            console.warn(`Could not fetch ${currentCurrency}USD exchange rate. Prices will remain in USD.`);
-            exchangeRates[`${currentCurrency}USD`] = 1; // Fallback to 1 if rate not found
-        }
-
-        if (usdToCurrencyData && usdToCurrencyData.length > 0 && usdToCurrencyData[0].price) {
-            exchangeRates[`USD${currentCurrency}`] = usdToCurrencyData[0].price; // Ex: USDEUR = 0.92
-        } else {
-            console.warn(`Could not fetch USD${currentCurrency} exchange rate. Prices will remain in USD.`);
-            exchangeRates[`USD${currentCurrency}`] = 1; // Fallback to 1 if rate not found
-        }
-    } else {
-        exchangeRates = {}; // Clear rates if back to USD
-    }
-
     const [cryptoRes, stockRes, forexRes, indicesRes, commoditiesRes] = await Promise.all([
       fetch(cryptoUrl),
       fetch(stockUrl),
@@ -145,12 +95,15 @@ async function fetchData() {
     allFetchedData.commodities = commoditiesData;
 
     // Update display based on the currently active section
+    // This ensures tables are populated even after data reload
     const currentActiveSectionId = document.querySelector('.nav-link.active')?.dataset.section || 'home';
     if (currentActiveSectionId === 'stocks') {
         updateLists(allFetchedData.stocks, [], allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities);
     } else if (currentActiveSectionId === 'crypto') {
         updateLists([], allFetchedData.cryptos, [], [], []);
     } else { // 'home' or 'news' or if no section is active
+        // For 'home' and 'news', main tables are hidden, but sidebar needs all data
+        // Call updateLists with all data for recommendations, even if tables are hidden
         updateLists(allFetchedData.stocks, allFetchedData.cryptos, allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities);
     }
     updateIndices([...allFetchedData.indices, ...allFetchedData.commodities]);
@@ -256,10 +209,7 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
   stockListTableBody.innerHTML = '';
   cryptoListTableBody.innerHTML = '';
 
-  const currencySymbol = getCurrencySymbol(currentCurrency);
-  const conversionRate = exchangeRates[`USD${currentCurrency}`] || 1; // USD to target currency
-
-  // Data for Stock/Forex/Indices/Commodities table (FMP data)
+  // Data for Stock/Forex/Indices/Commodities table
   const allNonCryptoAssets = [
     ...(Array.isArray(stocks) ? stocks : []),
     ...(Array.isArray(forex) ? forex : []),
@@ -268,17 +218,14 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
   ];
 
   if (allNonCryptoAssets.length === 0) {
-      stockListTableBody.innerHTML = `<tr><td colspan="5">No stock, forex, indices, or commodities data available in ${currentCurrency}.</td></tr>`;
+      stockListTableBody.innerHTML = '<tr><td colspan="5">No stock, forex, indices, or commodities data available.</td></tr>';
   } else {
       allNonCryptoAssets.forEach(asset => {
         const change = asset.changesPercentage ?? 0;
-        const priceUSD = asset.price ?? 0;
-        const capUSD = asset.marketCap ?? 0;
-        
-        const priceConverted = priceUSD * conversionRate;
-        const capConverted = capUSD * conversionRate;
-
+        const price = asset.price ?? 0;
+        const cap = asset.marketCap ?? 0;
         const isGain = change >= 0;
+        // Translated recommendations with emojis
         let recommendation = '';
         if (change > 3) {
           recommendation = '📈 Buy';
@@ -288,14 +235,14 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
           recommendation = '🤝 Hold';
         }
         const changeClass = isGain ? 'gain' : 'loss';
-        const changeArrow = isGain ? '▲' : '▼';
+        const changeArrow = isGain ? '▲' : '▼'; // Arrow indicator
 
         const row = `
           <tr>
             <td onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')">${asset.name}</td>
-            <td onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')">${formatPrice(priceConverted, currentCurrency)}</td>
+            <td onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')">$${price.toLocaleString()}</td>
             <td onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')" class="${changeClass}">${change.toFixed(2)}% ${changeArrow}</td>
-            <td onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')">${capConverted ? formatPrice(capConverted, currentCurrency) : 'N/A'}</td>
+            <td onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')">${cap ? '$' + (cap / 1e9).toFixed(1) + 'B' : 'N/A'}</td>
             <td onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')">${recommendation}</td>
           </tr>
         `;
@@ -304,15 +251,16 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
   }
 
 
-  // Data for Crypto table (CoinGecko data - already fetched in currentCurrency)
+  // Data for Crypto table
   if (Array.isArray(cryptos) && cryptos.length === 0) {
-      cryptoListTableBody.innerHTML = `<tr><td colspan="5">No cryptocurrency data available in ${currentCurrency}.</td></tr>`;
+      cryptoListTableBody.innerHTML = '<tr><td colspan="5">No cryptocurrency data available.</td></tr>';
   } else {
       (Array.isArray(cryptos) ? cryptos : []).forEach(asset => {
         const change = asset.price_change_percentage_24h ?? 0;
-        const price = asset.current_price ?? 0; // Already in currentCurrency
-        const cap = asset.market_cap ?? 0; // Already in currentCurrency
+        const price = asset.current_price ?? 0;
+        const cap = asset.market_cap ?? 0;
         const isGain = change >= 0;
+        // Translated recommendations with emojis
         let recommendation = '';
         if (change > 3) {
           recommendation = '📈 Buy';
@@ -322,14 +270,14 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
           recommendation = '🤝 Hold';
         }
         const changeClass = isGain ? 'gain' : 'loss';
-        const changeArrow = isGain ? '▲' : '▼';
+        const changeArrow = isGain ? '▲' : '▼'; // Arrow indicator
 
         const row = `
           <tr>
             <td onclick="showChartModal('${asset.id}', 'crypto', '${asset.name}')">${asset.name}</td>
-            <td onclick="showChartModal('${asset.id}', 'crypto', '${asset.name}')">${formatPrice(price, currentCurrency)}</td>
+            <td onclick="showChartModal('${asset.id}', 'crypto', '${asset.name}')">$${price.toLocaleString()}</td>
             <td onclick="showChartModal('${asset.id}', 'crypto', '${asset.name}')" class="${changeClass}">${change.toFixed(2)}% ${changeArrow}</td>
-            <td onclick="showChartModal('${asset.id}', 'crypto', '${asset.name}')">${cap ? formatPrice(cap, currentCurrency) : 'N/A'}</td>
+            <td onclick="showChartModal('${asset.id}', 'crypto', '${asset.name}')">${cap ? '$' + (cap / 1e9).toFixed(1) + 'B' : 'N/A'}</td>
             <td onclick="showChartModal('${asset.id}', 'crypto', '${asset.name}')">${recommendation}</td>
           </tr>
         `;
@@ -352,6 +300,7 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
   } else {
       recList.innerHTML = allAssetsForRecommendations.map(asset => {
         const change = asset.price_change_percentage_24h ?? asset.changesPercentage ?? 0;
+        // Translated recommendations with emojis (already present)
         const recommendation = change > 3 ? '📈 Buy' : change < -3 ? '📉 Sell' : '🤝 Hold';
         return `<li>${asset.name}: ${recommendation}</li>`;
       }).join('');
@@ -363,9 +312,10 @@ function updateIndices(data) {
   const list = document.getElementById('indices-list');
   if (!list) return;
 
+  // Check if data is an array before processing
   if (!Array.isArray(data)) {
     console.error("Data for updateIndices is not an array.", data);
-    list.innerHTML = '<li>No market indices available.</li>';
+    list.innerHTML = '<li>No market indices available.</li>'; // Display message if no data
     return;
   }
   
@@ -375,7 +325,7 @@ function updateIndices(data) {
       list.innerHTML = data.map(item => {
         const change = item.changesPercentage?.toFixed(2);
         const cls = change >= 0 ? 'gain' : 'loss';
-        const changeArrow = change >= 0 ? '▲' : '▼';
+        const changeArrow = change >= 0 ? '▲' : '▼'; // Arrow indicator
         return `<li>${item.name}: <span class="${cls}">${change}% ${changeArrow}</span></li>`;
       }).join('');
   }
@@ -387,32 +337,39 @@ function performSearch(query) {
 
   // If query is empty, revert to the last active section view
   if (query === '') {
+    // Restore active navigation link
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
     document.querySelector(`.nav-link[data-section="${lastActiveSection}"]`).classList.add('active');
 
+    // Restore active content section
     document.querySelectorAll('.content-section').forEach(sec => sec.classList.add('hidden'));
     document.getElementById(lastActiveSection).classList.remove('hidden');
 
+    // Repopulate lists with all data based on the restored section
     if (lastActiveSection === 'stocks') {
       updateLists(allFetchedData.stocks, [], allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities);
     } else if (lastActiveSection === 'crypto') {
-      updateLists([], allFetchedData.cryptos, [], [], []);
+      updateLists([], allFetchedData.cryptos, [], [], []); // Only crypto data for crypto section
     } else if (lastActiveSection === 'news') {
-      fetchNews();
+      fetchNews(); // Refetch news if it was the active tab
     } else if (lastActiveSection === 'home') {
+        // For 'home' section, main tables are hidden
         document.getElementById('stocks').classList.add('hidden');
         document.getElementById('crypto').classList.add('hidden');
         document.getElementById('news').classList.add('hidden');
     }
+    // For general recommendations and sidebar indices, use all data
     updateIndices([...allFetchedData.indices, ...allFetchedData.commodities]);
-    return;
+    return; // Exit function
   }
 
+  // Store current active section before performing search
   const currentActiveNavLink = document.querySelector('.nav-link.active');
   if (currentActiveNavLink) {
     lastActiveSection = currentActiveNavLink.dataset.section;
   }
 
+  // Filter all data types
   const filteredStocks = allFetchedData.stocks.filter(asset =>
     asset.name.toLowerCase().includes(lowerCaseQuery) || asset.symbol.toLowerCase().includes(lowerCaseQuery)
   );
@@ -429,16 +386,21 @@ function performSearch(query) {
     asset.name.toLowerCase().includes(lowerCaseQuery) || asset.symbol.toLowerCase().includes(lowerCaseQuery)
   );
 
+  // Deactivate all navigation links and activate 'Stocks' for search results
   document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
   document.querySelector('.nav-link[data-section="stocks"]').classList.add('active');
 
+  // Hide all content sections and show 'stocks' section for search results
   document.querySelectorAll('.content-section').forEach(sec => sec.classList.add('hidden'));
   document.getElementById('stocks').classList.remove('hidden');
   document.getElementById('crypto').classList.add('hidden');
   document.getElementById('news').classList.add('hidden');
   document.getElementById('home').classList.add('hidden');
 
+
+  // Update lists with filtered data
   updateLists(filteredStocks, filteredCryptos, filteredForex, filteredIndices, filteredCommodities);
+  // Update sidebar indices with filtered indices and commodities
   updateIndices([...filteredIndices, ...filteredCommodities]);
 }
 
@@ -449,6 +411,7 @@ function handleNavigation() {
       e.preventDefault();
       const section = link.dataset.section;
 
+      // Update the last active section when a navigation link is clicked
       lastActiveSection = section;
 
       document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
@@ -458,26 +421,29 @@ function handleNavigation() {
       const activeSection = document.getElementById(section);
       if (activeSection) activeSection.classList.remove('hidden');
 
+      // If switching to a tab displaying data, repopulate with all data
       if (section === 'stocks') {
         updateLists(allFetchedData.stocks, [], allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities);
         updateIndices([...allFetchedData.indices, ...allFetchedData.commodities]);
       } else if (section === 'crypto') {
-        updateLists([], allFetchedData.cryptos, [], [], []);
+        updateLists([], allFetchedData.cryptos, [], [], []); // Only crypto data
         updateIndices([...allFetchedData.indices, ...allFetchedData.commodities]);
       } else if (section === 'news') {
         fetchNews();
       } else if (section === 'home') {
+        // When navigating to home, ensure main tables are hidden
         document.getElementById('stocks').classList.add('hidden');
         document.getElementById('crypto').classList.add('hidden');
         document.getElementById('news').classList.add('hidden');
       }
+      // Clear search bar on navigation
       document.querySelector('.search-bar').value = '';
     });
   });
 }
 
 // Function to display the chart modal
-async function showChartModal(symbol, type, name, period = '30d') {
+async function showChartModal(symbol, type, name, period = '30d') { // Default period to 30 days
   const modal = document.getElementById('chartModal');
   const chartTitle = document.getElementById('chartTitle');
   const chartLoading = document.getElementById('chartLoading');
@@ -486,15 +452,17 @@ async function showChartModal(symbol, type, name, period = '30d') {
   const ctx = chartCanvas.getContext('2d');
   const chartPeriodSelector = document.getElementById('chartPeriodSelector');
 
+  // Store current asset details for period changes
   currentChartSymbol = symbol;
   currentChartType = type;
   currentChartName = name;
 
-  chartTitle.textContent = `Price Evolution Chart for ${name} (${currentCurrency})`; // Add currency to chart title
+  chartTitle.textContent = `Price Evolution Chart for ${name}`;
   chartLoading.classList.remove('hidden');
   chartError.classList.add('hidden');
   modal.classList.remove('hidden');
 
+  // Create period buttons if they don't exist
   if (!chartPeriodSelector.hasChildNodes()) {
       const periods = {
           '7d': '7 Days',
@@ -508,13 +476,17 @@ async function showChartModal(symbol, type, name, period = '30d') {
           button.textContent = periods[p];
           button.dataset.period = p;
           button.addEventListener('click', () => {
+              // Remove active class from all buttons
               document.querySelectorAll('.chart-period-selector button').forEach(btn => btn.classList.remove('active'));
+              // Add active class to the clicked button
               button.classList.add('active');
+              // Reload chart with new period
               showChartModal(currentChartSymbol, currentChartType, currentChartName, p);
           });
           chartPeriodSelector.appendChild(button);
       }
   }
+  // Set active class for the current period
   document.querySelectorAll('.chart-period-selector button').forEach(btn => {
       if (btn.dataset.period === period) {
           btn.classList.add('active');
@@ -524,15 +496,16 @@ async function showChartModal(symbol, type, name, period = '30d') {
   });
 
 
+  // Destroy old chart if it exists
   if (myChart) {
     myChart.destroy();
   }
 
   try {
-    const historicalData = await fetchHistoricalData(symbol, type, period, currentCurrency);
+    const historicalData = await fetchHistoricalData(symbol, type, period);
 
     if (historicalData && historicalData.length > 0) {
-      renderChart(historicalData, name, ctx, currentCurrency);
+      renderChart(historicalData, name, ctx);
       chartLoading.classList.add('hidden');
     } else {
       chartLoading.classList.add('hidden');
@@ -551,14 +524,15 @@ async function showChartModal(symbol, type, name, period = '30d') {
 function closeChartModal() {
   document.getElementById('chartModal').classList.add('hidden');
   if (myChart) {
-    myChart.destroy();
+    myChart.destroy(); // Destroy chart to free up resources
   }
+  // Clear period selector buttons
   document.getElementById('chartPeriodSelector').innerHTML = '';
 }
 
 // Function to fetch historical data
-async function fetchHistoricalData(symbol, type, period, targetCurrency) {
-  const apiKey = '86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS';
+async function fetchHistoricalData(symbol, type, period) {
+  const apiKey = '86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS'; // Your FMP API key
   let url = '';
   let dataPath = '';
 
@@ -569,9 +543,9 @@ async function fetchHistoricalData(symbol, type, period, targetCurrency) {
     else if (period === '90d') days = '90';
     else if (period === '365d') days = '365';
     else if (period === 'max') days = 'max';
-    else days = '30';
+    else days = '30'; // Default to 30 days
 
-    url = `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=${targetCurrency.toLowerCase()}&days=${days}`;
+    url = `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=${days}`;
     dataPath = 'prices';
   } else {
     let endDate = new Date();
@@ -586,9 +560,9 @@ async function fetchHistoricalData(symbol, type, period, targetCurrency) {
     } else if (period === '365d') {
         startDate.setFullYear(endDate.getFullYear() - 1);
     } else if (period === 'max') {
-        startDate.setFullYear(endDate.getFullYear() - 5);
+        startDate.setFullYear(endDate.getFullYear() - 5); // Fetch 5 years for 'max'
     } else {
-        startDate.setDate(endDate.getDate() - 30);
+        startDate.setDate(endDate.getDate() - 30); // Default to 30 days
     }
 
     const formatDate = (date) => date.toISOString().split('T')[0];
@@ -598,87 +572,52 @@ async function fetchHistoricalData(symbol, type, period, targetCurrency) {
 
   try {
     const response = await fetch(url);
-    if (!response.ok) {
+    if (!response.ok) { // Check if response status is not 2xx
         const errorText = await response.text();
         console.error(`API error for historical data (${type}, ${symbol}, ${period}): Status ${response.status} - ${errorText}`);
+        // Throw an error to be caught by showChartModal
         throw new Error(`Failed to fetch historical data: ${response.statusText || 'Unknown error'}. Check API key and console.`);
     }
     const data = await response.json();
 
-    let historicalPrices = [];
-
     if (type === 'crypto' && data[dataPath]) {
-      historicalPrices = data[dataPath].map(item => ({
+      return data[dataPath].map(item => ({
         date: new Date(item[0]).toLocaleDateString('en-US'),
         price: item[1]
       }));
     } else if (data[dataPath]) {
-      // For FMP data, fetch historical exchange rates if targetCurrency is not USD
-      if (targetCurrency !== 'USD') {
-        const forexSymbol = `USD${targetCurrency}`; // Example: USDEUR
-        const historicalForexUrl = `https://financialmodelingprep.com/api/v3/historical-price-full/${forexSymbol}?from=${formatDate(startDate)}&to=${formatDate(endDate)}&apikey=${apiKey}`;
-        const forexResponse = await fetch(historicalForexUrl);
-        if (!forexResponse.ok) {
-            console.warn(`Could not fetch historical exchange rates for ${forexSymbol}. Displaying FMP data in USD.`);
-            historicalPrices = data[dataPath].map(item => ({
-                date: item.date,
-                price: item.close
-            })).reverse();
-        } else {
-            const forexData = await forexResponse.json();
-            const forexRates = {};
-            if (forexData && forexData.historical) {
-                forexData.historical.forEach(rate => {
-                    forexRates[rate.date] = rate.close; // Store closing rate for each date
-                });
-            }
-
-            historicalPrices = data[dataPath].map(item => {
-                const date = item.date;
-                const priceUSD = item.close;
-                // Get the exchange rate for that specific date, fallback to 1 if not found
-                const rate = forexRates[date] || exchangeRates[`USD${targetCurrency}`] || 1;
-                return {
-                    date: date,
-                    price: priceUSD * rate
-                };
-            }).reverse();
-        }
-      } else {
-        historicalPrices = data[dataPath].map(item => ({
-          date: item.date,
-          price: item.close
-        })).reverse();
-      }
+      return data[dataPath].map(item => ({
+        date: item.date,
+        price: item.close
+      })).reverse();
     } else {
       console.warn(`No historical data found for ${symbol} (${type}). API response:`, data);
       return [];
     }
-    return historicalPrices;
   } catch (error) {
     console.error(`Error fetching historical data for ${symbol} (${type}):`, error);
+    // Re-throw the error to be handled by showChartModal
     throw error;
   }
 }
 
 // Function to render the chart with Chart.js
-function renderChart(historicalData, assetName, ctx, currencyCode) {
+function renderChart(historicalData, assetName, ctx) {
   const labels = historicalData.map(data => data.date);
   const prices = historicalData.map(data => data.price);
-  const currencySymbol = getCurrencySymbol(currencyCode);
 
   myChart = new Chart(ctx, {
     type: 'line',
     data: {
       labels: labels,
       datasets: [{
-        label: `Price of ${assetName} (${currencyCode})`,
+        label: `Price of ${assetName} (USD)`,
         data: prices,
         borderColor: '#61dafb', // Couleur du graphique bleu clair
         backgroundColor: 'rgba(97, 218, 251, 0.1)', // Fond du graphique transparent
-        tension: 0.2,
+        tension: 0.2, // Légère courbure pour un aspect plus doux
         fill: true,
-        pointRadius: 0
+        pointRadius: 0 // Cacher les points individuels
       }]
     },
     options: {
@@ -701,13 +640,13 @@ function renderChart(historicalData, assetName, ctx, currencyCode) {
         y: {
           title: {
             display: true,
-            text: `Price (${currencyCode})`, // Update Y-axis title
+            text: 'Price (USD)',
             color: '#e0e0e0'
           },
           ticks: {
             color: '#b0b0b0',
             callback: function(value) {
-                return formatPrice(value, currencyCode); // Use formatPrice
+                return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
             }
           },
           grid: {
@@ -724,7 +663,7 @@ function renderChart(historicalData, assetName, ctx, currencyCode) {
                 label += ': ';
               }
               if (context.parsed.y !== null) {
-                label += formatPrice(context.parsed.y, currencyCode); // Use formatPrice
+                label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
               }
               return label;
             }
@@ -742,22 +681,14 @@ function renderChart(historicalData, assetName, ctx, currencyCode) {
 
 // --- Initialisation au chargement du DOM ---
 document.addEventListener('DOMContentLoaded', () => {
-  // Initialise le sélecteur de devise
-  const currencySelector = document.getElementById('currencySelector');
-  if (currencySelector) {
-    currencySelector.value = currentCurrency; // Définit la valeur par défaut
-    currencySelector.addEventListener('change', (event) => {
-      currentCurrency = event.target.value;
-      fetchData(); // Recharge toutes les données avec la nouvelle devise
-    });
-  }
-
   handleNavigation(); // Initialise la navigation et la visibilité des sections
   fetchData(); // Première récupération des données
 
-  // Gestion du bouton d'authentification (désactivé comme demandé)
+  // Gestion du bouton d'authentification (simplifié)
   document.getElementById('authButton').addEventListener('click', () => {
     console.log("Login button clicked. Login functionality is currently disabled.");
+    // Vous pouvez ajouter une alerte ou un message si vous souhaitez informer l'utilisateur
+    // alert("Login functionality is currently disabled.");
   });
 
   // Ajout de l'écouteur d'événement pour la barre de recherche

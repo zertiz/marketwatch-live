@@ -66,27 +66,6 @@ body {
   max-width: 300px; /* Limite la largeur sur les grands écrans */
 }
 
-.currency-selector {
-  padding: 8px 12px;
-  border-radius: 8px; /* Coins légèrement arrondis */
-  border: 1px solid #444;
-  background-color: #333;
-  color: #e0e0e0;
-  margin-right: 10px;
-  cursor: pointer;
-  appearance: none; /* Supprime le style par défaut du système */
-  background-image: url('data:image/svg+xml;utf8,<svg fill="%23e0e0e0" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>'); /* Flèche personnalisée */
-  background-repeat: no-repeat;
-  background-position: right 8px top 50%;
-  background-size: 16px;
-}
-
-.currency-selector option {
-  background-color: #333; /* Fond des options */
-  color: #e0e0e0; /* Texte des options */
-}
-
-
 .auth-btn {
   background-color: #61dafb; /* Bouton bleu clair */
   color: #1a1a1a; /* Texte sombre sur bouton clair */
@@ -466,12 +445,6 @@ th {
 
   .search-bar {
     width: 100%;
-    margin-right: 0;
-    margin-bottom: 10px;
-  }
-
-  .currency-selector {
-    width: 100%; /* Prend toute la largeur sur mobile */
     margin-right: 0;
     margin-bottom: 10px;
   }
