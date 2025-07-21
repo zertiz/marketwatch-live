@@ -712,7 +712,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Interval de rafraîchissement des données (très long ici, ajuster si nécessaire)
-  setInterval(fetchData, 300000);
+  // Interval de rafraîchissement des données (environ toutes les 23 minutes pour 250 requêtes FMP/jour)
+  setInterval(fetchData, 1382400); // 1382400 ms = 23.04 minutes
 });
 
