@@ -18,7 +18,7 @@
     </nav>
     <div class="user-actions">
       <input type="text" placeholder="Rechercher..." class="search-bar" />
-      <!-- L'ID 'authButton' a été ajouté ici -->
+      <!-- L'ID 'authButton' est crucial pour le JS -->
       <button class="auth-btn" id="authButton">Connexion</button>
     </div>
   </header>
@@ -104,6 +104,7 @@
     <div class="modal-content">
       <span class="close-button">&times;</span>
       <h2 id="chartTitle"></h2>
+      <!-- L'ID 'chartLoading' est crucial pour le JS -->
       <p id="chartLoading" class="loading-message">Chargement du graphique...</p>
       <p id="chartError" class="error-message hidden"></p>
       
