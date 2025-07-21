@@ -12,7 +12,9 @@ let currentChartSymbol = '';
 let currentChartType = '';
 let currentChartName = '';
 let currentCurrency = 'USD'; // Devise par défaut, fixée à USD
-// exchangeRates n'est plus nécessaire
+
+// --- Votre clé API Financial Modeling Prep (FMP) ---
+const FMP_API_KEY = '86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS';
 
 // --- Fonctions Utilitaires ---
 
@@ -26,11 +28,20 @@ function formatPrice(price, currencyCode) {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
 }
 
+// Fonction pour afficher/masquer le spinner de chargement global
+function showGlobalLoadingSpinner() {
+  document.getElementById('global-loading-spinner').classList.remove('hidden');
+}
+
+function hideGlobalLoadingSpinner() {
+  document.getElementById('global-loading-spinner').classList.add('hidden');
+}
+
 // --- Fonctions de Récupération et Mise à Jour des Données ---
 
 async function fetchData() {
-  const apiKey = '86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS'; // Your FMP API key
-  // CoinGecko sera toujours en USD
+  showGlobalLoadingSpinner(); // Afficher le spinner au début du chargement
+  const apiKey = FMP_API_KEY; // Utilisation de la clé FMP
   const cryptoUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana,cardano,ripple,dogecoin,tron,polkadot,polygon,chainlink`;
   const stockUrl = `https://financialmodelingprep.com/api/v3/quote/AAPL,NVDA,MSFT,TSLA,AMZN,META,GOOG,JPM,BAC,V?apikey=${apiKey}`;
   const forexUrl = `https://financialmodelingprep.com/api/v3/quote/EURUSD,USDJPY,GBPUSD,AUDUSD,USDCAD,USDCHF,USDCNY,USDHKD,USDSEK,USDSGD?apikey=${apiKey}`;
@@ -38,10 +49,10 @@ async function fetchData() {
   const commoditiesUrl = `https://financialmodelingprep.com/api/v3/quote/GCUSD,SIUSD,CLUSD,NGUSD,HGUSD,ALIUSD,PAUSD,PLUSD,KCUSD,SBUSD?apikey=${apiKey}`;
 
   // Display loading messages for main tables
-  document.getElementById('stock-list').innerHTML = '<tr><td colspan="5">Loading stock data...</td></tr>';
-  document.getElementById('crypto-list').innerHTML = '<tr><td colspan="5">Loading crypto data...</td></tr>';
-  document.getElementById('indices-list').innerHTML = '<li>Loading market indices...</li>';
-  document.getElementById('recommendations').innerHTML = '<li>Loading recommendations...</li>';
+  document.getElementById('stock-list').innerHTML = '<tr><td colspan="5">Chargement des données boursières...</td></tr>';
+  document.getElementById('crypto-list').innerHTML = '<tr><td colspan="5">Chargement des données crypto...</td></tr>';
+  document.getElementById('indices-list').innerHTML = '<li>Chargement des indices de marché...</li>';
+  document.getElementById('recommendations').innerHTML = '<li>Chargement des recommandations...</li>';
 
   try {
     const [cryptoRes, stockRes, forexRes, indicesRes, commoditiesRes] = await Promise.all([
@@ -54,21 +65,20 @@ async function fetchData() {
 
     // Check for API key errors (403 Forbidden) or 404 Not Found
     if (!stockRes.ok || !forexRes.ok || !indicesRes.ok || !commoditiesRes.ok) {
-        let errorMessage = "Error fetching data from Financial Modeling Prep. ";
+        let errorMessage = "Erreur lors de la récupération des données de Financial Modeling Prep. ";
         if (stockRes.status === 403 || forexRes.status === 403 || indicesRes.status === 403 || commoditiesRes.status === 403) {
-            errorMessage += "Your API key might be invalid or usage limits exceeded (403 Forbidden).";
+            errorMessage += "Votre clé API pourrait être invalide ou les limites d'utilisation dépassées (403 Forbidden).";
         } else if (indicesRes.status === 404) {
-            errorMessage += "Indices URL might be incorrect (404 Not Found).";
+            errorMessage += "L'URL des indices pourrait être incorrecte (404 Not Found).";
         } else {
-            errorMessage += `Status: ${stockRes.status || forexRes.status || indicesRes.status || commoditiesRes.status}`;
+            errorMessage += `Statut: ${stockRes.status || forexRes.status || indicesRes.status || commoditiesRes.status}`;
         }
         console.error(errorMessage);
         // Clear tables and show error
         document.getElementById('stock-list').innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
-        document.getElementById('crypto-list').innerHTML = `<tr><td colspan="5" class="error-message">Loading crypto data...</td></tr>`; // Crypto might still load
+        document.getElementById('crypto-list').innerHTML = `<tr><td colspan="5" class="error-message">Chargement des données crypto...</td></tr>`; // Crypto might still load
         document.getElementById('indices-list').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
         document.getElementById('recommendations').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
-        // Proceed with potentially empty data for other parts
     }
 
 
@@ -80,25 +90,24 @@ async function fetchData() {
     let commoditiesData = await commoditiesRes.json();
 
     // Robust checks to ensure data are arrays
-    // If data is not an array, it's initialized to an empty array
     if (!Array.isArray(stockData)) {
-        console.error("Invalid or missing stock data. Initializing to empty array.");
+        console.error("Données boursières invalides ou manquantes. Initialisation à un tableau vide.");
         stockData = [];
     }
     if (!Array.isArray(cryptoData)) {
-        console.error("Invalid or missing crypto data. Initializing to empty array.");
+        console.error("Données crypto invalides ou manquantes. Initialisation à un tableau vide.");
         cryptoData = [];
     }
     if (!Array.isArray(forexData)) {
-        console.error("Invalid or missing forex data. Initializing to empty array.");
+        console.error("Données forex invalides ou manquantes. Initialisation à un tableau vide.");
         forexData = [];
     }
     if (!Array.isArray(indicesData)) {
-        console.error("Invalid or missing indices data. Initializing to empty array.");
+        console.error("Données indices invalides ou manquantes. Initialisation à un tableau vide.");
         indicesData = [];
     }
     if (!Array.isArray(commoditiesData)) {
-        console.error("Invalid or missing commodities data. Initializing to empty array.");
+        console.error("Données matières premières invalides ou manquantes. Initialisation à un tableau vide.");
         commoditiesData = [];
     }
 
@@ -121,18 +130,21 @@ async function fetchData() {
     updateIndices([...allFetchedData.indices, ...allFetchedData.commodities]);
 
   } catch (error) {
-    console.error("Error loading data:", error);
-    const genericErrorMessage = "An unexpected error occurred while loading data.";
+    console.error("Erreur lors du chargement des données:", error);
+    const genericErrorMessage = "Une erreur inattendue est survenue lors du chargement des données.";
     document.getElementById('stock-list').innerHTML = `<tr><td colspan="5" class="error-message">${genericErrorMessage}</td></tr>`;
     document.getElementById('crypto-list').innerHTML = `<tr><td colspan="5" class="error-message">${genericErrorMessage}</td></tr>`;
     document.getElementById('indices-list').innerHTML = `<li><span class="error-message">${genericErrorMessage}</span></li>`;
     document.getElementById('recommendations').innerHTML = `<li><span class="error-message">${genericErrorMessage}</span></li>`;
+  } finally {
+    hideGlobalLoadingSpinner(); // Masquer le spinner après le chargement (succès ou échec)
   }
 }
 
 async function fetchNews() {
+  showGlobalLoadingSpinner(); // Afficher le spinner
   const newsContainer = document.getElementById('news-articles');
-  newsContainer.innerHTML = '<p>Loading news...</p>';
+  newsContainer.innerHTML = '<p>Chargement des actualités...</p>';
 
   const feeds = [
     {
@@ -171,7 +183,7 @@ async function fetchNews() {
 
         const title = item.querySelector('title')?.textContent ?? '';
         const link = item.querySelector('link')?.textContent ?? '';
-        const pubDate = new Date(item.querySelector('pubDate')?.textContent ?? '').toLocaleDateString('en-US'); // Changed to en-US for date format
+        const pubDate = new Date(item.querySelector('pubDate')?.textContent ?? '').toLocaleDateString('en-US');
         const description = item.querySelector('description')?.textContent ?? '';
 
         // Detect image URL in description or via media tags
@@ -201,16 +213,56 @@ async function fetchNews() {
       });
     }
 
-    // Display news or a message if none found
-    newsContainer.innerHTML = html || '<p>No news found.</p>';
+    html = html || '<p>Aucune actualité trouvée.</p>';
+    newsContainer.innerHTML = html;
   } catch (error) {
-    console.error("Error loading news:", error);
-    newsContainer.innerHTML = '<p class="error-message">Error loading news. Please check your internet connection or try again later.</p>';
+    console.error("Erreur lors du chargement des actualités:", error);
+    newsContainer.innerHTML = '<p class="error-message">Erreur lors du chargement des actualités. Veuillez vérifier votre connexion internet ou réessayer plus tard.</p>';
+  } finally {
+    hideGlobalLoadingSpinner(); // Masquer le spinner
   }
 }
 
+/**
+ * Trie un tableau de données par une clé et une direction spécifiées.
+ * @param {Array} data Le tableau de données à trier.
+ * @param {string} key La clé par laquelle trier (nom de la propriété).
+ * @param {string} direction La direction du tri ('asc' pour ascendant, 'desc' pour descendant).
+ * @returns {Array} Le tableau trié.
+ */
+function sortData(data, key, direction) {
+  if (!data || data.length === 0) return [];
+
+  const sorted = [...data].sort((a, b) => {
+    let valA = a[key];
+    let valB = b[key];
+
+    // Gérer les cas où les valeurs sont nulles ou non numériques pour le tri numérique
+    if (typeof valA === 'number' && typeof valB === 'number') {
+        if (valA === null || isNaN(valA)) valA = -Infinity; // Mettre les null/NaN en bas pour asc
+        if (valB === null || isNaN(valB)) valB = -Infinity; // Mettre les null/NaN en bas pour asc
+    } else if (typeof valA === 'string' && typeof valB === 'string') {
+        valA = valA.toLowerCase();
+        valB = valB.toLowerCase();
+    } else {
+        // Fallback pour d'autres types, les convertir en chaîne si possible
+        valA = String(valA).toLowerCase();
+        valB = String(valB).toLowerCase();
+    }
+
+    if (valA < valB) {
+      return direction === 'asc' ? -1 : 1;
+    }
+    if (valA > valB) {
+      return direction === 'asc' ? 1 : -1;
+    }
+    return 0;
+  });
+  return sorted;
+}
+
 // Function to update stock and crypto lists
-function updateLists(stocks, cryptos, forex, indices, commodities) {
+function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = {}) {
   const stockListTableBody = document.getElementById('stock-list');
   const cryptoListTableBody = document.getElementById('crypto-list');
   const recList = document.getElementById('recommendations');
@@ -231,22 +283,33 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
     ...(Array.isArray(commodities) ? commodities : [])
   ];
 
-  if (allNonCryptoAssets.length === 0) {
-      stockListTableBody.innerHTML = `<tr><td colspan="5">No stock, forex, indices, or commodities data available.</td></tr>`;
+  // Appliquer le tri si une configuration est fournie
+  let sortedStocks = allNonCryptoAssets;
+  let sortedCryptos = cryptos;
+
+  if (sortConfig.tableId === 'stock-list') {
+      sortedStocks = sortData(allNonCryptoAssets, sortConfig.key, sortConfig.direction);
+  } else if (sortConfig.tableId === 'crypto-list') {
+      sortedCryptos = sortData(cryptos, sortConfig.key, sortConfig.direction);
+  }
+
+
+  if (sortedStocks.length === 0) {
+      stockListTableBody.innerHTML = `<tr><td colspan="5">Aucune donnée d'actions, de forex, d'indices ou de matières premières disponible.</td></tr>`;
   } else {
-      allNonCryptoAssets.forEach(asset => {
+      sortedStocks.forEach(asset => {
         const change = asset.changesPercentage ?? 0;
-        const price = asset.price ?? 0; // Prix déjà en USD
-        const cap = asset.marketCap ?? 0; // Capitalisation déjà en USD
+        const price = asset.price ?? 0;
+        const cap = asset.marketCap ?? 0;
         
         const isGain = change >= 0;
         let recommendation = '';
         if (change > 3) {
-          recommendation = '📈 Buy';
+          recommendation = '📈 Acheter';
         } else if (change < -3) {
-          recommendation = '📉 Sell';
+          recommendation = '📉 Vendre';
         } else {
-          recommendation = '🤝 Hold';
+          recommendation = '🤝 Conserver';
         }
         const changeClass = isGain ? 'gain' : 'loss';
         const changeArrow = isGain ? '▲' : '▼';
@@ -266,21 +329,21 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
 
 
   // Data for Crypto table (CoinGecko data - déjà en USD)
-  if (Array.isArray(cryptos) && cryptos.length === 0) {
-      cryptoListTableBody.innerHTML = `<tr><td colspan="5">No cryptocurrency data available.</td></tr>`;
+  if (sortedCryptos.length === 0) {
+      cryptoListTableBody.innerHTML = `<tr><td colspan="5">Aucune donnée de cryptomonnaie disponible.</td></tr>`;
   } else {
-      (Array.isArray(cryptos) ? cryptos : []).forEach(asset => {
+      sortedCryptos.forEach(asset => {
         const change = asset.price_change_percentage_24h ?? 0;
-        const price = asset.current_price ?? 0; // Déjà en USD
-        const cap = asset.market_cap ?? 0; // Déjà en USD
+        const price = asset.current_price ?? 0;
+        const cap = asset.market_cap ?? 0;
         const isGain = change >= 0;
         let recommendation = '';
         if (change > 3) {
-          recommendation = '📈 Buy';
+          recommendation = '📈 Acheter';
         } else if (change < -3) {
-          recommendation = '📉 Sell';
+          recommendation = '📉 Vendre';
         } else {
-          recommendation = '🤝 Hold';
+          recommendation = '🤝 Conserver';
         }
         const changeClass = isGain ? 'gain' : 'loss';
         const changeArrow = isGain ? '▲' : '▼';
@@ -309,11 +372,11 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
   ];
 
   if (allAssetsForRecommendations.length === 0) {
-      recList.innerHTML = '<li>No recommendations available.</li>';
+      recList.innerHTML = '<li>Aucune recommandation disponible.</li>';
   } else {
       recList.innerHTML = allAssetsForRecommendations.map(asset => {
         const change = asset.price_change_percentage_24h ?? asset.changesPercentage ?? 0;
-        const recommendation = change > 3 ? '📈 Buy' : change < -3 ? '📉 Sell' : '🤝 Hold';
+        const recommendation = change > 3 ? '📈 Acheter' : change < -3 ? '📉 Vendre' : '🤝 Conserver';
         return `<li>${asset.name}: ${recommendation}</li>`;
       }).join('');
   }
@@ -325,13 +388,13 @@ function updateIndices(data) {
   if (!list) return;
 
   if (!Array.isArray(data)) {
-    console.error("Data for updateIndices is not an array.", data);
-    list.innerHTML = '<li>No market indices available.</li>';
+    console.error("Les données pour updateIndices ne sont pas un tableau.", data);
+    list.innerHTML = '<li>Aucun indice de marché disponible.</li>';
     return;
   }
   
   if (data.length === 0) {
-      list.innerHTML = '<li>No market indices available.</li>';
+      list.innerHTML = '<li>Aucun indice de marché disponible.</li>';
   } else {
       list.innerHTML = data.map(item => {
         const change = item.changesPercentage?.toFixed(2);
@@ -400,7 +463,7 @@ function performSearch(query) {
   document.getElementById('home').classList.add('hidden');
 
   updateLists(filteredStocks, filteredCryptos, filteredForex, filteredIndices, filteredCommodities);
-  updateIndices([...filteredIndices, ...filteredCommodities]);
+  updateIndices([...filteredIndices, ...allFetchedData.commodities]);
 }
 
 // Handle navigation between sections
@@ -450,18 +513,18 @@ async function showChartModal(symbol, type, name, period = '30d') { // Default p
   currentChartType = type;
   currentChartName = name;
 
-  chartTitle.textContent = `Price Evolution Chart for ${name} (USD)`; // Titre du graphique en USD
-  chartLoading.classList.remove('hidden');
+  chartTitle.textContent = `Évolution du prix pour ${name} (USD)`;
+  chartLoading.classList.remove('hidden'); // Afficher le message de chargement du graphique
   chartError.classList.add('hidden');
   modal.classList.remove('hidden');
 
   // Always clear and recreate period buttons to ensure they appear
   chartPeriodSelector.innerHTML = ''; // Clear existing buttons
   const periods = {
-      '7d': '7 Days',
-      '30d': '30 Days',
-      '90d': '3 Months',
-      '365d': '1 Year',
+      '7d': '7 Jours',
+      '30d': '30 Jours',
+      '90d': '3 Mois',
+      '365d': '1 An',
       'max': 'Max'
   };
   for (const p in periods) {
@@ -491,22 +554,21 @@ async function showChartModal(symbol, type, name, period = '30d') { // Default p
   }
 
   try {
-    // Appel à fetchHistoricalData sans le paramètre targetCurrency, car il est fixe à USD
     const historicalData = await fetchHistoricalData(symbol, type, period);
 
     if (historicalData && historicalData.length > 0) {
       renderChart(historicalData, name, ctx, currentCurrency);
-      chartLoading.classList.add('hidden');
+      chartLoading.classList.add('hidden'); // Masquer le message de chargement
     } else {
       chartLoading.classList.add('hidden');
       chartError.classList.remove('hidden');
-      chartError.textContent = "No historical data available for this asset or API error.";
+      chartError.textContent = "Aucune donnée historique disponible pour cet actif ou erreur API.";
     }
   } catch (error) {
-    console.error("Error loading historical data:", error);
+    console.error("Erreur lors du chargement des données historiques:", error);
     chartLoading.classList.add('hidden');
     chartError.classList.remove('hidden');
-    chartError.textContent = "Error loading historical data. Please try again later.";
+    chartError.textContent = "Erreur lors du chargement des données historiques. Veuillez réessayer plus tard.";
   }
 }
 
@@ -519,9 +581,9 @@ function closeChartModal() {
   document.getElementById('chartPeriodSelector').innerHTML = ''; // Clear period selector buttons
 }
 
-// Function to fetch historical data (simplifiée pour USD)
+// Function to fetch historical data
 async function fetchHistoricalData(symbol, type, period) {
-  const apiKey = '86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS';
+  const apiKey = FMP_API_KEY; // Utilisation de la clé FMP
   let url = '';
   let dataPath = '';
 
@@ -536,10 +598,9 @@ async function fetchHistoricalData(symbol, type, period) {
     else if (period === 'max') days = 'max'; // CoinGecko supporte 'max'
     else days = '30';
 
-    // CoinGecko sera toujours en USD
     url = `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=${days}`;
     dataPath = 'prices';
-  } else {
+  } else { // For stocks, forex, indices, commodities (FMP)
     let endDate = new Date();
     let startDate = new Date();
 
@@ -583,11 +644,11 @@ async function fetchHistoricalData(symbol, type, period) {
         date: new Date(item[0]).toLocaleDateString('en-US'),
         price: item[1]
       }));
-    } else if (data[dataPath]) {
+    } else if (data[dataPath]) { // FMP data
       historicalPrices = data[dataPath].map(item => ({
           date: item.date,
           price: item.close
-      })).reverse();
+      })).reverse(); // FMP returns in reverse chronological order
     } else {
       console.warn(`No historical data found for ${symbol} (${type}). API response:`, data);
       return [];
@@ -603,17 +664,17 @@ async function fetchHistoricalData(symbol, type, period) {
 function renderChart(historicalData, assetName, ctx, currencyCode) {
   const labels = historicalData.map(data => data.date);
   const prices = historicalData.map(data => data.price);
-  const currencySymbol = getCurrencySymbol(currencyCode); // Sera toujours '$'
+  const currencySymbol = getCurrencySymbol(currencyCode);
 
   myChart = new Chart(ctx, {
     type: 'line',
     data: {
       labels: labels,
       datasets: [{
-        label: `Price of ${assetName} (USD)`, // Label du graphique en USD
+        label: `Prix de ${assetName} (USD)`,
         data: prices,
-        borderColor: '#61dafb', // Couleur du graphique bleu clair
-        backgroundColor: 'rgba(97, 218, 251, 0.1)', // Fond du graphique transparent
+        borderColor: '#61dafb',
+        backgroundColor: 'rgba(97, 218, 251, 0.1)',
         tension: 0.2,
         fill: true,
         pointRadius: 0
@@ -639,13 +700,13 @@ function renderChart(historicalData, assetName, ctx, currencyCode) {
         y: {
           title: {
             display: true,
-            text: `Price (USD)`, // Titre de l'axe Y en USD
+            text: `Prix (USD)`,
             color: '#e0e0e0'
           },
           ticks: {
             color: '#b0b0b0',
             callback: function(value) {
-                return formatPrice(value, currentCurrency); // Utilise formatPrice (en USD)
+                return formatPrice(value, currentCurrency);
             }
           },
           grid: {
@@ -662,7 +723,7 @@ function renderChart(historicalData, assetName, ctx, currencyCode) {
                 label += ': ';
               }
               if (context.parsed.y !== null) {
-                label += formatPrice(context.parsed.y, currentCurrency); // Utilise formatPrice (en USD)
+                label += formatPrice(context.parsed.y, currentCurrency);
               }
               return label;
             }
@@ -678,14 +739,46 @@ function renderChart(historicalData, assetName, ctx, currencyCode) {
   });
 }
 
+/**
+ * Gère le basculement entre le mode sombre et le mode clair.
+ * Sauvegarde la préférence dans le localStorage.
+ */
+function toggleTheme() {
+  const body = document.body;
+  const themeToggleBtn = document.getElementById('theme-toggle');
+  
+  if (body.classList.contains('light-mode')) {
+    body.classList.remove('light-mode');
+    localStorage.setItem('theme', 'dark');
+    themeToggleBtn.textContent = '☀️'; // Icône pour passer au mode clair
+  } else {
+    body.classList.add('light-mode');
+    localStorage.setItem('theme', 'light');
+    themeToggleBtn.textContent = '🌙'; // Icône pour passer au mode sombre
+  }
+}
+
 // --- Initialisation au chargement du DOM ---
 document.addEventListener('DOMContentLoaded', () => {
+  // Appliquer le thème sauvegardé ou le thème par défaut
+  const savedTheme = localStorage.getItem('theme');
+  const body = document.body;
+  const themeToggleBtn = document.getElementById('theme-toggle');
+
+  if (savedTheme === 'light') {
+    body.classList.add('light-mode');
+    themeToggleBtn.textContent = '🌙';
+  } else {
+    body.classList.remove('light-mode'); // Assure que le mode sombre est par défaut
+    themeToggleBtn.textContent = '☀️';
+  }
+
   handleNavigation(); // Initialise la navigation et la visibilité des sections
   fetchData(); // Première récupération des données
 
   // Gestion du bouton d'authentification (désactivé comme demandé)
   document.getElementById('authButton').addEventListener('click', () => {
-    console.log("Login button clicked. Login functionality is currently disabled.");
+    console.log("Bouton de connexion cliqué. La fonctionnalité de connexion est actuellement désactivée.");
   });
 
   // Ajout de l'écouteur d'événement pour la barre de recherche
@@ -712,7 +805,48 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Interval de rafraîchissement des données (très long ici, ajuster si nécessaire)
-  setInterval(fetchData, 345600);
+  // Écouteur pour le bouton de bascule de thème
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', toggleTheme);
+  }
+
+  // Gestion du tri des tableaux
+  document.querySelectorAll('table thead th[data-sort-key]').forEach(header => {
+    header.addEventListener('click', () => {
+      const tableId = header.closest('table').querySelector('tbody').id;
+      const sortKey = header.dataset.sortKey;
+      let sortDirection = header.dataset.sortDirection;
+
+      // Déterminer la nouvelle direction de tri
+      if (sortDirection === 'asc') {
+        sortDirection = 'desc';
+      } else if (sortDirection === 'desc') {
+        sortDirection = 'asc'; // Revenir à asc si déjà desc
+      } else {
+        sortDirection = 'asc'; // Par défaut asc
+      }
+
+      // Réinitialiser les flèches de tri pour tous les en-têtes du même tableau
+      header.closest('thead').querySelectorAll('th[data-sort-key]').forEach(th => {
+        if (th !== header) {
+          th.dataset.sortDirection = 'none'; // Cacher la flèche
+        }
+      });
+
+      // Mettre à jour la direction pour l'en-tête cliqué
+      header.dataset.sortDirection = sortDirection;
+
+      // Appliquer le tri et mettre à jour la liste
+      if (tableId === 'stock-list') {
+        updateLists(allFetchedData.stocks, [], allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities, { tableId: tableId, key: sortKey, direction: sortDirection });
+      } else if (tableId === 'crypto-list') {
+        updateLists([], allFetchedData.cryptos, [], [], [], { tableId: tableId, key: sortKey, direction: sortDirection });
+      }
+    });
+  });
+
+
+  // Interval de rafraîchissement des données (toutes les 5 minutes)
+  setInterval(fetchData, 300000); // 300000 ms = 5 minutes
 });
 
