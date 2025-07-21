@@ -36,7 +36,6 @@
           <li>Loading...</li>
         </ul>
       </div>
-      <!-- La section My Watchlist est retirée -->
     </aside>
 
     <main class="main-content">
@@ -55,7 +54,6 @@
               <th>24h %</th>
               <th>Cap.</th>
               <th>Advice</th>
-              <!-- La colonne Action est retirée -->
             </tr>
           </thead>
           <tbody id="stock-list">
@@ -74,7 +72,6 @@
               <th>24h %</th>
               <th>Cap.</th>
               <th>Advice</th>
-              <!-- La colonne Action est retirée -->
             </tr>
           </thead>
           <tbody id="crypto-list">
@@ -100,7 +97,10 @@
       <p id="chartLoading" class="loading-message">Loading chart...</p>
       <p id="chartError" class="error-message hidden"></p>
       
-      <!-- Le sélecteur de période du graphique est retiré -->
+      <!-- Sélecteur de période du graphique -->
+      <div id="chartPeriodSelector" class="chart-period-selector">
+        <!-- Les boutons seront générés par JavaScript -->
+      </div>
 
       <div class="chart-container">
         <canvas id="historicalChart"></canvas>
@@ -110,7 +110,6 @@
 
   <!-- Chart.js Import -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- IMPORTANT: type="module" est retiré -->
   <script src="script.js"></script>
 </body>
 </html>

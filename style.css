@@ -323,9 +323,33 @@ th {
   font-weight: bold;
 }
 
-/* Les styles pour les sélecteurs de période du graphique sont retirés */
+/* Styles pour les sélecteurs de période du graphique */
+.chart-period-selector {
+  text-align: center;
+  margin-bottom: 15px;
+}
 
-/* Les styles pour les boutons d'action (watchlist) sont retirés */
+.chart-period-selector button {
+  background-color: #333;
+  color: #61dafb;
+  border: 1px solid #444;
+  padding: 8px 15px;
+  margin: 0 5px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  font-size: 0.9em;
+}
+
+.chart-period-selector button:hover {
+  background-color: #444;
+}
+
+.chart-period-selector button.active {
+  background-color: #61dafb;
+  color: #1a1a1a;
+  font-weight: bold;
+}
 
 /* Utilitaires */
 .hidden {
@@ -456,6 +480,12 @@ th {
 
   .chart-container {
     height: 250px; /* Hauteur encore plus réduite pour le graphique */
+  }
+
+  .chart-period-selector button {
+    padding: 6px 10px;
+    font-size: 0.8em;
+    margin: 0 3px;
   }
 }
 

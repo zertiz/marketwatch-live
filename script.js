@@ -393,7 +393,6 @@ function performSearch(query) {
   // Hide all content sections and show 'stocks' section for search results
   document.querySelectorAll('.content-section').forEach(sec => sec.classList.add('hidden'));
   document.getElementById('stocks').classList.remove('hidden');
-  // Ensure crypto section is hidden if search redirects to stocks
   document.getElementById('crypto').classList.add('hidden');
   document.getElementById('news').classList.add('hidden');
   document.getElementById('home').classList.add('hidden');
@@ -444,19 +443,58 @@ function handleNavigation() {
 }
 
 // Function to display the chart modal
-async function showChartModal(symbol, type, name) { // Removed period parameter
+async function showChartModal(symbol, type, name, period = '30d') { // Default period to 30 days
   const modal = document.getElementById('chartModal');
   const chartTitle = document.getElementById('chartTitle');
   const chartLoading = document.getElementById('chartLoading');
   const chartError = document.getElementById('chartError');
   const chartCanvas = document.getElementById('historicalChart');
   const ctx = chartCanvas.getContext('2d');
-  // Removed chartPeriodSelector related code
+  const chartPeriodSelector = document.getElementById('chartPeriodSelector');
+
+  // Store current asset details for period changes
+  currentChartSymbol = symbol;
+  currentChartType = type;
+  currentChartName = name;
 
   chartTitle.textContent = `Price Evolution Chart for ${name}`;
   chartLoading.classList.remove('hidden');
   chartError.classList.add('hidden');
   modal.classList.remove('hidden');
+
+  // Create period buttons if they don't exist
+  if (!chartPeriodSelector.hasChildNodes()) {
+      const periods = {
+          '7d': '7 Days',
+          '30d': '30 Days',
+          '90d': '3 Months',
+          '365d': '1 Year',
+          'max': 'Max'
+      };
+      for (const p in periods) {
+          const button = document.createElement('button');
+          button.textContent = periods[p];
+          button.dataset.period = p;
+          button.addEventListener('click', () => {
+              // Remove active class from all buttons
+              document.querySelectorAll('.chart-period-selector button').forEach(btn => btn.classList.remove('active'));
+              // Add active class to the clicked button
+              button.classList.add('active');
+              // Reload chart with new period
+              showChartModal(currentChartSymbol, currentChartType, currentChartName, p);
+          });
+          chartPeriodSelector.appendChild(button);
+      }
+  }
+  // Set active class for the current period
+  document.querySelectorAll('.chart-period-selector button').forEach(btn => {
+      if (btn.dataset.period === period) {
+          btn.classList.add('active');
+      } else {
+          btn.classList.remove('active');
+      }
+  });
+
 
   // Destroy old chart if it exists
   if (myChart) {
@@ -464,8 +502,7 @@ async function showChartModal(symbol, type, name) { // Removed period parameter
   }
 
   try {
-    // Default to 30 days for crypto, and general historical for FMP
-    const historicalData = await fetchHistoricalData(symbol, type); 
+    const historicalData = await fetchHistoricalData(symbol, type, period);
 
     if (historicalData && historicalData.length > 0) {
       renderChart(historicalData, name, ctx);
@@ -489,25 +526,44 @@ function closeChartModal() {
   if (myChart) {
     myChart.destroy(); // Destroy chart to free up resources
   }
-  // Removed clearing period selector buttons
+  // Clear period selector buttons
+  document.getElementById('chartPeriodSelector').innerHTML = '';
 }
 
 // Function to fetch historical data
-async function fetchHistoricalData(symbol, type) { // Removed period parameter
+async function fetchHistoricalData(symbol, type, period) {
   const apiKey = '86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS'; // Your FMP API key
   let url = '';
   let dataPath = '';
 
   if (type === 'crypto') {
-    // Default to 30 days for crypto as per original design
-    url = `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=30`;
+    let days = period;
+    if (period === '7d') days = '7';
+    else if (period === '30d') days = '30';
+    else if (period === '90d') days = '90';
+    else if (period === '365d') days = '365';
+    else if (period === 'max') days = 'max';
+    else days = '30'; // Default to 30 days
+
+    url = `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=${days}`;
     dataPath = 'prices';
   } else {
-    // For FMP, fetch a general historical range (e.g., 5 years)
-    // The previous implementation used a 5-year range for 'max' which is a good default
     let endDate = new Date();
     let startDate = new Date();
-    startDate.setFullYear(endDate.getFullYear() - 5); // Default to 5 years of data
+
+    if (period === '7d') {
+        startDate.setDate(endDate.getDate() - 7);
+    } else if (period === '30d') {
+        startDate.setDate(endDate.getDate() - 30);
+    } else if (period === '90d') {
+        startDate.setMonth(endDate.getMonth() - 3);
+    } else if (period === '365d') {
+        startDate.setFullYear(endDate.getFullYear() - 1);
+    } else if (period === 'max') {
+        startDate.setFullYear(endDate.getFullYear() - 5); // Fetch 5 years for 'max'
+    } else {
+        startDate.setDate(endDate.getDate() - 30); // Default to 30 days
+    }
 
     const formatDate = (date) => date.toISOString().split('T')[0];
     url = `https://financialmodelingprep.com/api/v3/historical-price-full/${symbol}?from=${formatDate(startDate)}&to=${formatDate(endDate)}&apikey=${apiKey}`;
@@ -518,7 +574,8 @@ async function fetchHistoricalData(symbol, type) { // Removed period parameter
     const response = await fetch(url);
     if (!response.ok) { // Check if response status is not 2xx
         const errorText = await response.text();
-        console.error(`API error for historical data (${type}, ${symbol}): Status ${response.status} - ${errorText}`);
+        console.error(`API error for historical data (${type}, ${symbol}, ${period}): Status ${response.status} - ${errorText}`);
+        // Throw an error to be caught by showChartModal
         throw new Error(`Failed to fetch historical data: ${response.statusText || 'Unknown error'}. Check API key and console.`);
     }
     const data = await response.json();
@@ -539,6 +596,7 @@ async function fetchHistoricalData(symbol, type) { // Removed period parameter
     }
   } catch (error) {
     console.error(`Error fetching historical data for ${symbol} (${type}):`, error);
+    // Re-throw the error to be handled by showChartModal
     throw error;
   }
 }
@@ -555,11 +613,11 @@ function renderChart(historicalData, assetName, ctx) {
       datasets: [{
         label: `Price of ${assetName} (USD)`,
         data: prices,
-        borderColor: '#007bff', // Revert to original blue color for chart line
-        backgroundColor: 'rgba(0, 123, 255, 0.1)', // Revert to original transparent background
-        tension: 0.1, // Revert tension
+        borderColor: '#61dafb', // Couleur du graphique bleu clair
+        backgroundColor: 'rgba(97, 218, 251, 0.1)', // Fond du graphique transparent
+        tension: 0.2, // Légère courbure pour un aspect plus doux
         fill: true,
-        pointRadius: 3 // Revert point radius
+        pointRadius: 0 // Cacher les points individuels
       }]
     },
     options: {
@@ -570,29 +628,29 @@ function renderChart(historicalData, assetName, ctx) {
           title: {
             display: true,
             text: 'Date',
-            color: '#e0e0e0' // Keep dark theme color for axis text
+            color: '#e0e0e0'
           },
           ticks: {
-            color: '#b0b0b0' // Keep dark theme color for axis ticks
+            color: '#b0b0b0'
           },
           grid: {
-            color: '#3a3a3a' // Keep dark theme color for grid lines
+            color: '#3a3a3a'
           }
         },
         y: {
           title: {
             display: true,
             text: 'Price (USD)',
-            color: '#e0e0e0' // Keep dark theme color for axis text
+            color: '#e0e0e0'
           },
           ticks: {
-            color: '#b0b0b0', // Keep dark theme color for axis ticks
+            color: '#b0b0b0',
             callback: function(value) {
                 return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
             }
           },
           grid: {
-            color: '#3a3a3a' // Keep dark theme color for grid lines
+            color: '#3a3a3a'
           }
         }
       },
@@ -613,7 +671,7 @@ function renderChart(historicalData, assetName, ctx) {
         },
         legend: {
             labels: {
-                color: '#e0e0e0' // Keep dark theme color for legend
+                color: '#e0e0e0'
             }
         }
       }
@@ -623,14 +681,12 @@ function renderChart(historicalData, assetName, ctx) {
 
 // --- Initialisation au chargement du DOM ---
 document.addEventListener('DOMContentLoaded', () => {
-  // Removed initializeFirebase();
   handleNavigation(); // Initialise la navigation et la visibilité des sections
   fetchData(); // Première récupération des données
 
   // Gestion du bouton d'authentification (simplifié)
   document.getElementById('authButton').addEventListener('click', () => {
-    // Puisque Firebase Auth est retiré, ce bouton ne fera rien ou peut être retiré
-    console.log("Login button clicked. Firebase Auth is not active.");
+    console.log("Login button clicked. Login functionality is currently disabled.");
     // Vous pouvez ajouter une alerte ou un message si vous souhaitez informer l'utilisateur
     // alert("Login functionality is currently disabled.");
   });
