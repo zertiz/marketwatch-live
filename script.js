@@ -109,48 +109,57 @@ async function fetchData() {
 
   // Array to hold all fetch promises
   const fetchPromises = [
-    { name: 'crypto', promise: fetch(cryptoUrl) },
-    { name: 'stocks', promise: fetch(stockUrl) },
-    { name: 'forex', promise: fetch(forexUrl) },
-    { name: 'indices', promise: fetch(indicesUrl) },
-    { name: 'commodities', promise: fetch(commoditiesUrl) }
+    { name: 'crypto', url: cryptoUrl },
+    { name: 'stocks', url: stockUrl },
+    { name: 'forex', url: forexUrl },
+    { name: 'indices', url: indicesUrl },
+    { name: 'commodities', url: commoditiesUrl }
   ];
 
+  // Temporary storage for fetched data
+  let tempFetchedData = {
+    stocks: [],
+    cryptos: [],
+    forex: [],
+    indices: [],
+    commodities: []
+  };
+
   try {
-    const results = await Promise.allSettled(fetchPromises.map(p => p.promise));
+    const results = await Promise.allSettled(fetchPromises.map(p => fetch(p.url)));
 
-    let cryptoData = [];
-    let stockData = [];
-    let forexData = [];
-    let indicesData = [];
-    let commoditiesData = [];
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      const { name, url } = fetchPromises[i];
 
-    results.forEach((result, index) => {
-      const { name } = fetchPromises[index];
       if (result.status === 'fulfilled') {
-        result.value.json().then(data => {
-          console.log(`[DEBUG] Données brutes reçues pour ${name}:`, data);
+        try {
+          const data = await result.value.json();
+          console.log(`[DEBUG] Données brutes reçues pour ${name} (URL: ${url}):`, data);
+
+          // Robust checks and assignments
           if (name === 'crypto') {
-            cryptoData = Array.isArray(data) ? data : [];
+            tempFetchedData.cryptos = Array.isArray(data) ? data : [];
           } else if (name === 'stocks') {
-            stockData = Array.isArray(data) ? data : [];
+            tempFetchedData.stocks = Array.isArray(data) ? data : [];
           } else if (name === 'forex') {
-            forexData = Array.isArray(data) ? data : [];
+            tempFetchedData.forex = Array.isArray(data) ? data : [];
           } else if (name === 'indices') {
-            indicesData = Array.isArray(data) ? data : [];
+            // FMP /quote/ endpoint returns an array, but sometimes might be empty or an object if error
+            tempFetchedData.indices = Array.isArray(data) ? data : [];
           } else if (name === 'commodities') {
-            commoditiesData = Array.isArray(data) ? data : [];
+            tempFetchedData.commodities = Array.isArray(data) ? data : [];
           }
-        }).catch(jsonError => {
-          console.error(`[ERROR] Erreur de parsing JSON pour ${name}:`, jsonError);
-          // Afficher un message d'erreur dans l'UI si nécessaire
-          if (name === 'stocks') document.getElementById('stock-list').innerHTML = `<tr><td colspan="5" class="error-message">Erreur de données pour les actions.</td></tr>`;
-          if (name === 'crypto') document.getElementById('crypto-list').innerHTML = `<tr><td colspan="5" class="error-message">Erreur de données pour les cryptos.</td></tr>`;
-          if (name === 'indices') document.getElementById('indices-list').innerHTML = `<li><span class="error-message">Erreur de données pour les indices.</span></li>`;
-          if (name === 'recommendations') document.getElementById('recommendations').innerHTML = `<li><span class="error-message">Erreur de données pour les recommandations.</span></li>`;
-        });
+        } catch (jsonError) {
+          console.error(`[ERROR] Erreur de parsing JSON pour ${name} (URL: ${url}):`, jsonError);
+          let errorMessage = `Erreur de données pour ${name}.`;
+          if (name === 'stocks') document.getElementById('stock-list').innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
+          if (name === 'crypto') document.getElementById('crypto-list').innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
+          if (name === 'indices') document.getElementById('indices-list').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
+          if (name === 'recommendations') document.getElementById('recommendations').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
+        }
       } else {
-        console.error(`[ERROR] Échec de la récupération des données pour ${name}:`, result.reason);
+        console.error(`[ERROR] Échec de la récupération des données pour ${name} (URL: ${url}):`, result.reason);
         let errorMessage = `Erreur de chargement pour ${name}.`;
         if (result.reason instanceof Response) {
             errorMessage += ` Statut: ${result.reason.status}`;
@@ -166,16 +175,10 @@ async function fetchData() {
         if (name === 'indices') document.getElementById('indices-list').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
         if (name === 'recommendations') document.getElementById('recommendations').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
       }
-    });
+    }
 
-    // Wait for all JSON parsing promises to settle before updating global data
-    await Promise.all(results.map(r => r.status === 'fulfilled' ? r.value.json().catch(() => {}) : Promise.resolve()));
-
-    allFetchedData.stocks = stockData;
-    allFetchedData.cryptos = cryptoData;
-    allFetchedData.forex = forexData;
-    allFetchedData.indices = indicesData;
-    allFetchedData.commodities = commoditiesData;
+    // Assign all data at once after all fetches and parsing are complete
+    allFetchedData = tempFetchedData;
 
     // Update display based on the currently active section
     const currentActiveSectionId = document.querySelector('.nav-link.active')?.dataset.section || 'home';
@@ -634,7 +637,6 @@ async function fetchHistoricalData(symbol, type) { // 'period' parameter removed
     let startDate = new Date();
     startDate.setFullYear(endDate.getFullYear() - 1); // Fixed to 1 year ago
 
-    // CORRECTION ICI: Changer le '?' en '&' pour la clé API après les paramètres 'from' et 'to'
     url = `https://financialmodelingprep.com/api/v3/historical-price-full/${symbol}?from=${formatDate(startDate)}&to=${formatDate(endDate)}&apikey=${apiKey}`;
     dataPath = 'historical';
   }
