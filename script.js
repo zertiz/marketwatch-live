@@ -1,4 +1,4 @@
-// Variables globales pour stocker toutes les données récupérées
+// Global variables to store all fetched data
 let allFetchedData = {
   stocks: [],
   cryptos: [],
@@ -7,14 +7,14 @@ let allFetchedData = {
   commodities: []
 };
 
-// Variable pour garder en mémoire la dernière section active avant une recherche
+// Variable to keep track of the last active section before a search
 let lastActiveSection = 'home';
 
 async function fetchData() {
   const cryptoUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana,cardano,ripple,dogecoin,tron,polkadot,polygon,chainlink';
   const stockUrl = 'https://financialmodelingprep.com/api/v3/quote/AAPL,NVDA,MSFT,TSLA,AMZN,META,GOOG,JPM,BAC,V?apikey=86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS';
   const forexUrl = 'https://financialmodelingprep.com/api/v3/quote/EURUSD,USDJPY,GBPUSD,AUDUSD,USDCAD,USDCHF,USDCNY,USDHKD,USDSEK,USDSGD?apikey=86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS';
-  // Correction de l'URL des indices : encodage des '^' en '%5E' pour corriger l'erreur 404
+  // Corrected indices URL: encoding '^' to '%5E' to fix 404 error
   const indicesUrl = 'https://financialmodelingprep.com/api/v3/quote/%5EDJI,%5EIXIC,%5EGSPC,%5EFCHI,%5EGDAXI,%5EFTSE,%5EN225,%5EHSI,%5ESSMI,%5EBVSP?apikey=86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS';
   const commoditiesUrl = 'https://financialmodelingprep.com/api/v3/quote/GCUSD,SIUSD,CLUSD,NGUSD,HGUSD,ALIUSD,PAUSD,PLUSD,KCUSD,SBUSD?apikey=86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS';
 
@@ -27,65 +27,65 @@ async function fetchData() {
       fetch(commoditiesUrl)
     ]);
 
-    // Récupération des données JSON
+    // Retrieve JSON data
     let cryptoData = await cryptoRes.json();
     let stockData = await stockRes.json();
     let forexData = await forexRes.json();
     let indicesData = await indicesRes.json();
     let commoditiesData = await commoditiesRes.json();
 
-    // Vérifications robustes pour s'assurer que les données sont des tableaux
-    // Si les données ne sont pas un tableau, elles sont initialisées à un tableau vide
+    // Robust checks to ensure data are arrays
+    // If data is not an array, it's initialized to an empty array
     if (!Array.isArray(stockData)) {
-        console.error("Données de bourse invalides ou manquantes. Initialisation à un tableau vide.");
+        console.error("Invalid or missing stock data. Initializing to empty array.");
         stockData = [];
     }
     if (!Array.isArray(cryptoData)) {
-        console.error("Données de crypto invalides ou manquantes. Initialisation à un tableau vide.");
+        console.error("Invalid or missing crypto data. Initializing to empty array.");
         cryptoData = [];
     }
     if (!Array.isArray(forexData)) {
-        console.error("Données de forex invalides ou manquantes. Initialisation à un tableau vide.");
+        console.error("Invalid or missing forex data. Initializing to empty array.");
         forexData = [];
     }
     if (!Array.isArray(indicesData)) {
-        console.error("Données d'indices invalides ou manquantes. Initialisation à un tableau vide.");
+        console.error("Invalid or missing indices data. Initializing to empty array.");
         indicesData = [];
     }
     if (!Array.isArray(commoditiesData)) {
-        console.error("Données de matières premières invalides ou manquantes. Initialisation à un tableau vide.");
+        console.error("Invalid or missing commodities data. Initializing to empty array.");
         commoditiesData = [];
     }
 
-    // Stockage des données dans les variables globales
+    // Store data in global variables
     allFetchedData.stocks = stockData;
     allFetchedData.cryptos = cryptoData;
     allFetchedData.forex = forexData;
     allFetchedData.indices = indicesData;
     allFetchedData.commodities = commoditiesData;
 
-    // Mise à jour de l'affichage en fonction de la section actuellement active
-    // Cela garantit que les tableaux sont remplis même après le rechargement des données
+    // Update display based on the currently active section
+    // This ensures tables are populated even after data reload
     const currentActiveSectionId = document.querySelector('.nav-link.active')?.dataset.section || 'home';
     if (currentActiveSectionId === 'stocks') {
         updateLists(allFetchedData.stocks, [], allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities);
     } else if (currentActiveSectionId === 'crypto') {
         updateLists([], allFetchedData.cryptos, [], [], []);
-    } else { // 'home' ou 'news' ou si aucune section n'est active
-        // Pour 'home' et 'news', les tableaux principaux sont masqués, mais la barre latérale a besoin de toutes les données
-        // On appelle updateLists avec toutes les données pour les recommandations, même si les tableaux sont cachés
+    } else { // 'home' or 'news' or if no section is active
+        // For 'home' and 'news', main tables are hidden, but sidebar needs all data
+        // Call updateLists with all data for recommendations, even if tables are hidden
         updateLists(allFetchedData.stocks, allFetchedData.cryptos, allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities);
     }
     updateIndices([...allFetchedData.indices, ...allFetchedData.commodities]);
 
   } catch (error) {
-    console.error("Erreur lors du chargement des données :", error);
+    console.error("Error loading data:", error);
   }
 }
 
 async function fetchNews() {
   const newsContainer = document.getElementById('news-articles');
-  newsContainer.innerHTML = '<p>Chargement des actualités...</p>';
+  newsContainer.innerHTML = '<p>Loading news...</p>';
 
   const feeds = [
     {
@@ -106,28 +106,28 @@ async function fetchNews() {
     let html = '';
 
     for (const feed of feeds) {
-      // Utilisation d'un proxy pour contourner les problèmes de CORS
+      // Use a proxy to bypass CORS issues
       const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(feed.url);
       const res = await fetch(proxyUrl);
       const data = await res.json();
 
       const parser = new DOMParser();
-      // Analyse du contenu XML du flux RSS
+      // Parse XML content from RSS feed
       const xml = parser.parseFromString(data.contents, 'text/xml');
       const items = xml.querySelectorAll('item');
 
       html += `<h3 class="news-source">${feed.label}</h3>`;
 
       items.forEach((item, index) => {
-        // Limite à 4 articles par flux pour ne pas surcharger
+        // Limit to 4 articles per feed to avoid overload
         if (index >= 4) return;
 
         const title = item.querySelector('title')?.textContent ?? '';
         const link = item.querySelector('link')?.textContent ?? '';
-        const pubDate = new Date(item.querySelector('pubDate')?.textContent ?? '').toLocaleDateString();
+        const pubDate = new Date(item.querySelector('pubDate')?.textContent ?? '').toLocaleDateString('en-US'); // Changed to en-US for date format
         const description = item.querySelector('description')?.textContent ?? '';
 
-        // Détection de l'URL de l'image dans la description ou via les balises media
+        // Detect image URL in description or via media tags
         let imageUrl = '';
         const imgMatch = description.match(/<img.*?src=["'](.*?)["']/i);
         if (imgMatch) {
@@ -137,14 +137,14 @@ async function fetchNews() {
           if (media && media.getAttribute('url')) {
             imageUrl = media.getAttribute('url');
           } else {
-            // Image de substitution si aucune image n'est trouvée
+            // Placeholder image if no image is found
             imageUrl = 'https://placehold.co/150x100/A0A0A0/FFFFFF?text=No+Image';
           }
         }
 
         html += `
           <div class="news-card">
-            <img src="${imageUrl}" alt="Image de l'article" class="news-thumb">
+            <img src="${imageUrl}" alt="Article Image" class="news-thumb">
             <div class="news-content">
               <h4><a href="${link}" target="_blank">${title}</a></h4>
               <p class="news-date">${pubDate} • ${feed.label}</p>
@@ -154,15 +154,15 @@ async function fetchNews() {
       });
     }
 
-    // Affichage des actualités ou d'un message si aucune n'est trouvée
-    newsContainer.innerHTML = html || '<p>Aucune actualité trouvée.</p>';
+    // Display news or a message if none found
+    newsContainer.innerHTML = html || '<p>No news found.</p>';
   } catch (error) {
-    console.error("Erreur lors du chargement des actualités :", error);
-    newsContainer.innerHTML = '<p>Erreur de chargement des actualités.</p>';
+    console.error("Error loading news:", error);
+    newsContainer.innerHTML = '<p>Error loading news.</p>';
   }
 }
 
-// Fonction pour mettre à jour les listes d'actions et de cryptos
+// Function to update stock and crypto lists
 function updateLists(stocks, cryptos, forex, indices, commodities) {
   const stockListTableBody = document.getElementById('stock-list');
   const cryptoListTableBody = document.getElementById('crypto-list');
@@ -170,7 +170,7 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
 
   if (!stockListTableBody || !cryptoListTableBody || !recList) return;
 
-  // Nettoyage des listes avant d'ajouter de nouvelles données
+  // Clear lists before adding new data
   stockListTableBody.innerHTML = '';
   cryptoListTableBody.innerHTML = '';
 
@@ -187,11 +187,12 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
     const price = asset.price ?? 0;
     const cap = asset.marketCap ?? 0;
     const isGain = change >= 0;
-    const recommendation = change > 3 ? 'Acheter' : change < -3 ? 'Vendre' : 'Conserver';
+    // Translated recommendations
+    const recommendation = change > 3 ? 'Buy' : change < -3 ? 'Sell' : 'Hold';
     const changeClass = isGain ? 'gain' : 'loss';
 
-    // Ajout d'un attribut data-symbol et data-type pour le clic
-    // Utilisez asset.symbol pour FMP, et un type générique comme 'stock_fmp' pour les distinguer
+    // Add data-symbol and data-type attribute for click
+    // Use asset.symbol for FMP, and a generic type like 'stock_fmp' to distinguish them
     const row = `
       <tr onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')">
         <td>${asset.name}</td>
@@ -210,10 +211,11 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
     const price = asset.current_price ?? 0;
     const cap = asset.market_cap ?? 0;
     const isGain = change >= 0;
-    const recommendation = change > 3 ? 'Acheter' : change < -3 ? 'Vendre' : 'Conserver';
+    // Translated recommendations
+    const recommendation = change > 3 ? 'Buy' : change < -3 ? 'Sell' : 'Hold';
     const changeClass = isGain ? 'gain' : 'loss';
 
-    // Ajout d'un attribut data-symbol et data-type pour le clic (utiliser asset.id pour crypto CoinGecko)
+    // Add data-symbol and data-type attribute for click (use asset.id for CoinGecko crypto)
     const row = `
       <tr onclick="showChartModal('${asset.id}', 'crypto', '${asset.name}')">
         <td>${asset.name}</td>
@@ -237,19 +239,20 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
 
   recList.innerHTML = allAssetsForRecommendations.map(asset => {
     const change = asset.price_change_percentage_24h ?? asset.changesPercentage ?? 0;
-    const recommendation = change > 3 ? '📈 Acheter' : change < -3 ? '📉 Vendre' : '🤝 Conserver';
+    // Translated recommendations
+    const recommendation = change > 3 ? '📈 Buy' : change < -3 ? '📉 Sell' : '🤝 Hold';
     return `<li>${asset.name}: ${recommendation}</li>`;
   }).join('');
 }
 
-// Fonction pour mettre à jour la liste des indices dans la barre latérale
+// Function to update the indices list in the sidebar
 function updateIndices(data) {
   const list = document.getElementById('indices-list');
   if (!list) return;
 
-  // Vérification que les données sont un tableau avant de les traiter
+  // Check if data is an array before processing
   if (!Array.isArray(data)) {
-    console.error("Données pour updateIndices ne sont pas un tableau.", data);
+    console.error("Data for updateIndices is not an array.", data);
     return;
   }
 
@@ -260,45 +263,45 @@ function updateIndices(data) {
   }).join('');
 }
 
-// Fonction pour filtrer et afficher les résultats de recherche
+// Function to filter and display search results
 function performSearch(query) {
   const lowerCaseQuery = query.toLowerCase();
 
-  // Si la requête est vide, revenir à la vue de la dernière section active
+  // If query is empty, revert to the last active section view
   if (query === '') {
-    // Restaurer le lien de navigation actif
+    // Restore active navigation link
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
     document.querySelector(`.nav-link[data-section="${lastActiveSection}"]`).classList.add('active');
 
-    // Restaurer la section de contenu active
+    // Restore active content section
     document.querySelectorAll('.content-section').forEach(sec => sec.classList.add('hidden'));
     document.getElementById(lastActiveSection).classList.remove('hidden');
 
-    // Re-remplir les listes avec toutes les données en fonction de la section restaurée
+    // Repopulate lists with all data based on the restored section
     if (lastActiveSection === 'stocks') {
       updateLists(allFetchedData.stocks, [], allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities);
     } else if (lastActiveSection === 'crypto') {
-      updateLists([], allFetchedData.cryptos, [], [], []); // Seulement les données crypto pour la section crypto
+      updateLists([], allFetchedData.cryptos, [], [], []); // Only crypto data for crypto section
     } else if (lastActiveSection === 'news') {
-      fetchNews(); // Re-fetch les actualités si c'était l'onglet actif
+      fetchNews(); // Refetch news if it was the active tab
     } else if (lastActiveSection === 'home') {
-        // Pour la section 'home', les tableaux sont cachés
+        // For 'home' section, main tables are hidden
         document.getElementById('stocks').classList.add('hidden');
         document.getElementById('crypto').classList.add('hidden');
         document.getElementById('news').classList.add('hidden');
     }
-    // Pour les recommandations générales et les indices de la barre latérale, utiliser toutes les données
+    // For general recommendations and sidebar indices, use all data
     updateIndices([...allFetchedData.indices, ...allFetchedData.commodities]);
-    return; // Quitter la fonction
+    return; // Exit function
   }
 
-  // Stocker la section active actuelle avant d'effectuer la recherche
+  // Store current active section before performing search
   const currentActiveNavLink = document.querySelector('.nav-link.active');
   if (currentActiveNavLink) {
     lastActiveSection = currentActiveNavLink.dataset.section;
   }
 
-  // Filtrer tous les types de données
+  // Filter all data types
   const filteredStocks = allFetchedData.stocks.filter(asset =>
     asset.name.toLowerCase().includes(lowerCaseQuery) || asset.symbol.toLowerCase().includes(lowerCaseQuery)
   );
@@ -315,33 +318,33 @@ function performSearch(query) {
     asset.name.toLowerCase().includes(lowerCaseQuery) || asset.symbol.toLowerCase().includes(lowerCaseQuery)
   );
 
-  // Désactiver tous les liens de navigation et activer 'Bourse' pour les résultats de recherche
+  // Deactivate all navigation links and activate 'Stocks' for search results
   document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
   document.querySelector('.nav-link[data-section="stocks"]').classList.add('active');
 
-  // Masquer toutes les sections de contenu et afficher la section 'stocks' pour les résultats de recherche
+  // Hide all content sections and show 'stocks' section for search results
   document.querySelectorAll('.content-section').forEach(sec => sec.classList.add('hidden'));
   document.getElementById('stocks').classList.remove('hidden');
-  // S'assurer que la section crypto est cachée si la recherche redirige vers les stocks
+  // Ensure crypto section is hidden if search redirects to stocks
   document.getElementById('crypto').classList.add('hidden');
   document.getElementById('news').classList.add('hidden');
   document.getElementById('home').classList.add('hidden');
 
 
-  // Mettre à jour les listes avec les données filtrées
+  // Update lists with filtered data
   updateLists(filteredStocks, filteredCryptos, filteredForex, filteredIndices, filteredCommodities);
-  // Mettre à jour les indices de la barre latérale avec les indices et matières premières filtrés
+  // Update sidebar indices with filtered indices and commodities
   updateIndices([...filteredIndices, ...filteredCommodities]);
 }
 
-// Gestion de la navigation entre les sections
+// Handle navigation between sections
 function handleNavigation() {
   document.querySelectorAll('.nav-link').forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
       const section = link.dataset.section;
 
-      // Mettre à jour la dernière section active lorsque l'on clique sur un lien de navigation
+      // Update the last active section when a navigation link is clicked
       lastActiveSection = section;
 
       document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
@@ -351,31 +354,31 @@ function handleNavigation() {
       const activeSection = document.getElementById(section);
       if (activeSection) activeSection.classList.remove('hidden');
 
-      // Si l'on bascule vers un onglet affichant des données, re-remplir avec toutes les données
+      // If switching to a tab displaying data, repopulate with all data
       if (section === 'stocks') {
         updateLists(allFetchedData.stocks, [], allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities);
         updateIndices([...allFetchedData.indices, ...allFetchedData.commodities]);
       } else if (section === 'crypto') {
-        updateLists([], allFetchedData.cryptos, [], [], []); // Seulement les données crypto
+        updateLists([], allFetchedData.cryptos, [], [], []); // Only crypto data
         updateIndices([...allFetchedData.indices, ...allFetchedData.commodities]);
       } else if (section === 'news') {
         fetchNews();
       } else if (section === 'home') {
-        // Lorsque vous naviguez vers l'accueil, assurez-vous que les tableaux principaux sont masqués
+        // When navigating to home, ensure main tables are hidden
         document.getElementById('stocks').classList.add('hidden');
         document.getElementById('crypto').classList.add('hidden');
         document.getElementById('news').classList.add('hidden');
       }
-      // Effacer la barre de recherche lors de la navigation
+      // Clear search bar on navigation
       document.querySelector('.search-bar').value = '';
     });
   });
 }
 
-// Variables pour le graphique
-let myChart; // Pour stocker l'instance du graphique Chart.js
+// Variables for the chart
+let myChart; // To store the Chart.js instance
 
-// Fonction pour afficher le modal du graphique
+// Function to display the chart modal
 async function showChartModal(symbol, type, name) {
   const modal = document.getElementById('chartModal');
   const chartTitle = document.getElementById('chartTitle');
@@ -384,12 +387,12 @@ async function showChartModal(symbol, type, name) {
   const chartCanvas = document.getElementById('historicalChart');
   const ctx = chartCanvas.getContext('2d');
 
-  chartTitle.textContent = `Graphique de l'évolution de ${name}`;
+  chartTitle.textContent = `Price Evolution Chart for ${name}`; // Translated chart title
   chartLoading.classList.remove('hidden');
   chartError.classList.add('hidden');
-  modal.classList.remove('hidden'); // Afficher le modal
+  modal.classList.remove('hidden'); // Show modal
 
-  // Détruire l'ancien graphique s'il existe
+  // Destroy old chart if it exists
   if (myChart) {
     myChart.destroy();
   }
@@ -403,40 +406,40 @@ async function showChartModal(symbol, type, name) {
     } else {
       chartLoading.classList.add('hidden');
       chartError.classList.remove('hidden');
-      chartError.textContent = "Aucune donnée historique disponible pour cet actif ou erreur de l'API.";
+      chartError.textContent = "No historical data available for this asset or API error."; // Translated error message
     }
   } catch (error) {
-    console.error("Erreur lors du chargement des données historiques :", error);
+    console.error("Error loading historical data:", error);
     chartLoading.classList.add('hidden');
     chartError.classList.remove('hidden');
-    chartError.textContent = "Erreur lors du chargement des données historiques. Veuillez réessayer plus tard.";
+    chartError.textContent = "Error loading historical data. Please try again later."; // Translated error message
   }
 }
 
-// Fonction pour fermer le modal du graphique
+// Function to close the chart modal
 function closeChartModal() {
   document.getElementById('chartModal').classList.add('hidden');
   if (myChart) {
-    myChart.destroy(); // Détruire le graphique pour libérer les ressources
+    myChart.destroy(); // Destroy chart to free up resources
   }
 }
 
-// Fonction pour récupérer les données historiques
+// Function to fetch historical data
 async function fetchHistoricalData(symbol, type) {
-  const apiKey = '86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS'; // Votre clé API FMP
+  const apiKey = '86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS'; // Your FMP API key
   let url = '';
-  let dataPath = ''; // Pour savoir où se trouvent les données de prix dans la réponse
+  let dataPath = ''; // To know where price data is in the response
 
   if (type === 'crypto') {
-    // CoinGecko utilise un ID unique pour chaque crypto (ex: 'bitcoin')
-    // Le 'symbol' passé ici est déjà l'ID de CoinGecko
-    url = `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=30`; // Données sur 30 jours
-    dataPath = 'prices'; // Les données de prix sont sous la clé 'prices'
+    // CoinGecko uses a unique ID for each crypto (e.g., 'bitcoin')
+    // The 'symbol' passed here is already the CoinGecko ID
+    url = `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=30`; // 30 days of data
+    dataPath = 'prices'; // Price data is under the 'prices' key
   } else {
-    // Pour les actions, forex, indices, commodities (Financial Modeling Prep)
-    // Utilisation de l'endpoint 'historical-price-full'
+    // For stocks, forex, indices, commodities (Financial Modeling Prep)
+    // Using 'historical-price-full' endpoint
     url = `https://financialmodelingprep.com/api/v3/historical-price-full/${symbol}?apikey=${apiKey}`;
-    dataPath = 'historical'; // Les données historiques sont sous la clé 'historical'
+    dataPath = 'historical'; // Historical data is under the 'historical' key
   }
 
   try {
@@ -444,29 +447,29 @@ async function fetchHistoricalData(symbol, type) {
     const data = await response.json();
 
     if (type === 'crypto' && data[dataPath]) {
-      // CoinGecko renvoie un tableau de [timestamp, price]
+      // CoinGecko returns an array of [timestamp, price]
       return data[dataPath].map(item => ({
-        date: new Date(item[0]).toLocaleDateString('fr-FR'),
+        date: new Date(item[0]).toLocaleDateString('en-US'), // Changed to en-US for date format
         price: item[1]
       }));
     } else if (data[dataPath]) {
-      // FMP renvoie un tableau d'objets avec 'date' et 'close'
-      // Nous voulons les données les plus récentes en premier, donc inverser
+      // FMP returns an array of objects with 'date' and 'close'
+      // We want the most recent data first, so reverse
       return data[dataPath].map(item => ({
         date: item.date,
         price: item.close
-      })).reverse(); // Inverser pour avoir les dates dans l'ordre croissant
+      })).reverse(); // Reverse to have dates in ascending order
     } else {
-      console.warn(`Aucune donnée historique trouvée pour ${symbol} (${type}). Réponse de l'API:`, data);
+      console.warn(`No historical data found for ${symbol} (${type}). API response:`, data);
       return [];
     }
   } catch (error) {
-    console.error(`Erreur lors de la récupération des données historiques pour ${symbol} (${type}):`, error);
+    console.error(`Error fetching historical data for ${symbol} (${type}):`, error);
     return [];
   }
 }
 
-// Fonction pour rendre le graphique avec Chart.js
+// Function to render the chart with Chart.js
 function renderChart(historicalData, assetName, ctx) {
   const labels = historicalData.map(data => data.date);
   const prices = historicalData.map(data => data.price);
@@ -476,7 +479,7 @@ function renderChart(historicalData, assetName, ctx) {
     data: {
       labels: labels,
       datasets: [{
-        label: `Prix de ${assetName} (USD)`,
+        label: `Price of ${assetName} (USD)`, // Translated chart label
         data: prices,
         borderColor: '#007bff',
         backgroundColor: 'rgba(0, 123, 255, 0.1)',
@@ -486,18 +489,18 @@ function renderChart(historicalData, assetName, ctx) {
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false, // Permet au graphique de s'adapter à la taille du canvas
+      maintainAspectRatio: false, // Allows the chart to adapt to canvas size
       scales: {
         x: {
           title: {
             display: true,
-            text: 'Date'
+            text: 'Date' // Translated axis title
           }
         },
         y: {
           title: {
             display: true,
-            text: 'Prix (USD)'
+            text: 'Price (USD)' // Translated axis title
           }
         }
       },
@@ -521,11 +524,11 @@ function renderChart(historicalData, assetName, ctx) {
   });
 }
 
-// Initialisation de la navigation et récupération des données au chargement du DOM
+// Initialize navigation and data fetching on DOM load
 document.addEventListener('DOMContentLoaded', () => {
-  handleNavigation(); // Initialise la navigation et la visibilité des sections
-  fetchData(); // Première récupération des données
-  // Ajout de l'écouteur d'événement pour la barre de recherche
+  handleNavigation(); // Initializes navigation and section visibility
+  fetchData(); // Initial data fetch
+  // Add event listener for the search bar
   const searchBar = document.querySelector('.search-bar');
   if (searchBar) {
     searchBar.addEventListener('input', (e) => {
@@ -533,13 +536,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Écouteur pour le bouton de fermeture du modal
+  // Listener for modal close button
   const closeButton = document.querySelector('.close-button');
   if (closeButton) {
     closeButton.addEventListener('click', closeChartModal);
   }
 
-  // Fermer le modal si l'on clique en dehors du contenu (sur l'overlay)
+  // Close modal if clicking outside content (on overlay)
   const chartModal = document.getElementById('chartModal');
   if (chartModal) {
     chartModal.addEventListener('click', (e) => {
@@ -549,6 +552,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Intervalle de rafraîchissement des données (très long ici, ajuster si nécessaire)
+  // Data refresh interval (very long here, adjust if needed)
   setInterval(fetchData, 1000000);
 });
