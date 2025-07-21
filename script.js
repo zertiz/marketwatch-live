@@ -151,7 +151,7 @@ async function fetchData() {
                 // Vérifier si l'objet contient un message d'erreur de FMP
                 // Correction ici: utiliser la notation entre crochets pour "Error Message"
                 if (data && data['Error Message'] && data['Error Message'].includes('Free plan is limited to US stocks only')) {
-                    tempFetchedData.indices = { error: "Limitation du plan FMP: Indices non disponibles." };
+                    tempFetchedData.indices = { error: "Limitation du plan FMP: Indices non disponibles sur le plan gratuit." };
                 } else {
                     tempFetchedData.indices = []; // Assurez-vous que c'est un tableau vide si non conforme
                 }
@@ -191,16 +191,19 @@ async function fetchData() {
     // Assign all data at once after all fetches and parsing are complete
     allFetchedData = tempFetchedData;
 
-    // Update display based on the currently active section
+    // --- Appel des fonctions de mise à jour de l'UI ---
+    // Gérer spécifiquement les indices si c'est un objet d'erreur
+    const indicesToUpdate = Array.isArray(allFetchedData.indices) ? allFetchedData.indices : [];
+
     const currentActiveSectionId = document.querySelector('.nav-link.active')?.dataset.section || 'home';
     if (currentActiveSectionId === 'stocks') {
-        updateLists(allFetchedData.stocks, [], allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities);
+        updateLists(allFetchedData.stocks, [], allFetchedData.forex, indicesToUpdate, allFetchedData.commodities);
     } else if (currentActiveSectionId === 'crypto') {
         updateLists([], allFetchedData.cryptos, [], [], []);
     } else { // 'home' or 'news' or if no section is active
-        updateLists(allFetchedData.stocks, allFetchedData.cryptos, allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities);
+        updateLists(allFetchedData.stocks, allFetchedData.cryptos, allFetchedData.forex, indicesToUpdate, allFetchedData.commodities);
     }
-    updateIndices([...allFetchedData.indices, ...allFetchedData.commodities]);
+    updateIndices([...indicesToUpdate, ...allFetchedData.commodities]);
 
   } catch (error) {
     console.error("Erreur générale lors du chargement des données:", error);
