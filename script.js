@@ -12,7 +12,10 @@ let currentChartSymbol = '';
 let currentChartType = '';
 let currentChartName = '';
 let currentCurrency = 'USD'; // Devise par défaut, fixée à USD
-// exchangeRates n'est plus nécessaire
+
+// --- Votre clé API Alpha Vantage ---
+// REMPLACER 'YOUR_ALPHA_VANTAGE_API_KEY' par votre vraie clé API Alpha Vantage
+const ALPHA_VANTAGE_API_KEY = 'UPL2ZBTKNDAOJWWA';
 
 // --- Fonctions Utilitaires ---
 
@@ -29,13 +32,20 @@ function formatPrice(price, currencyCode) {
 // --- Fonctions de Récupération et Mise à Jour des Données ---
 
 async function fetchData() {
-  const apiKey = '86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS'; // Your FMP API key
-  // CoinGecko sera toujours en USD
+  // CoinGecko sera toujours en USD pour les cryptos
   const cryptoUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana,cardano,ripple,dogecoin,tron,polkadot,polygon,chainlink`;
-  const stockUrl = `https://financialmodelingprep.com/api/v3/quote/AAPL,NVDA,MSFT,TSLA,AMZN,META,GOOG,JPM,BAC,V?apikey=${apiKey}`;
-  const forexUrl = `https://financialmodelingprep.com/api/v3/quote/EURUSD,USDJPY,GBPUSD,AUDUSD,USDCAD,USDCHF,USDCNY,USDHKD,USDSEK,USDSGD?apikey=${apiKey}`;
-  const indicesUrl = `https://financialmodelingprep.com/api/v3/quote/%5EDJI,%5EIXIC,%5EGSPC,%5EFCHI,%5EGDAXI,%5EFTSE,%5EN225,%5EHSI,%5ESSMI,%5EBVSP?apikey=${apiKey}`;
-  const commoditiesUrl = `https://financialmodelingprep.com/api/v3/quote/GCUSD,SIUSD,CLUSD,NGUSD,HGUSD,ALIUSD,PAUSD,PLUSD,KCUSD,SBUSD?apikey=${apiKey}`;
+
+  // Symboles pour Alpha Vantage
+  const stockSymbols = 'AAPL,NVDA,MSFT,TSLA,AMZN,META,GOOG,JPM,BAC,V';
+  const forexSymbols = 'EUR,JPY,GBP,AUD,CAD,CHF,CNY,HKD,SEK,SGD'; // Base USD pour les paires
+  const indexSymbols = '^DJI,^IXIC,^GSPC,^FCHI,^GDAXI,^FTSE,^N225,^HSI,^SSMI,^BVSP'; // Alpha Vantage utilise des symboles différents pour les indices, ex: SPX, DJI
+  // Pour les indices et matières premières avec Alpha Vantage, il faut souvent des requêtes individuelles
+  // ou des fonctions spécifiques. Pour simplifier, nous allons chercher des "Global Quote" pour les actions
+  // et des "TIME_SERIES_DAILY" pour les indices/commodités si nécessaire.
+  // Pour les indices, Alpha Vantage utilise des symboles comme "SPX" pour S&P 500, "DJI" pour Dow Jones.
+  // Les symboles FMP comme ^DJI ne fonctionneront pas directement.
+  // Pour cette implémentation, je vais simuler des requêtes pour les indices et commodities via GLOBAL_QUOTE
+  // si un symbole Alpha Vantage équivalent est connu, sinon les ignorer.
 
   // Display loading messages for main tables
   document.getElementById('stock-list').innerHTML = '<tr><td colspan="5">Loading stock data...</td></tr>';
@@ -44,62 +54,90 @@ async function fetchData() {
   document.getElementById('recommendations').innerHTML = '<li>Loading recommendations...</li>';
 
   try {
-    const [cryptoRes, stockRes, forexRes, indicesRes, commoditiesRes] = await Promise.all([
+    const fetchPromises = [
       fetch(cryptoUrl),
-      fetch(stockUrl),
-      fetch(forexUrl),
-      fetch(indicesUrl),
-      fetch(commoditiesUrl)
-    ]);
+      fetch(`https://www.alphavantage.co/query?function=BATCH_STOCK_QUOTES&symbols=${stockSymbols}&apikey=${ALPHA_VANTAGE_API_KEY}`),
+      // Pour le forex, on va chercher chaque paire USD_XXX
+      ...forexSymbols.split(',').map(sym => fetch(`https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=USD&to_currency=${sym}&apikey=${ALPHA_VANTAGE_API_KEY}`)),
+      // Pour les indices, on va chercher chaque symbole connu par Alpha Vantage
+      fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=SPX&apikey=${ALPHA_VANTAGE_API_KEY}`), // S&P 500
+      fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=DJI&apikey=${ALPHA_VANTAGE_API_KEY}`), // Dow Jones
+      fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=NASDAQ&apikey=${ALPHA_VANTAGE_API_KEY}`), // NASDAQ Composite (approximatif)
+      // Pas de bonne API gratuite pour les matières premières en temps réel sur Alpha Vantage avec GLOBAL_QUOTE
+      // On va laisser les commodities vides pour l'instant ou chercher des alternatives si besoin.
+    ];
 
-    // Check for API key errors (403 Forbidden) or 404 Not Found
-    if (!stockRes.ok || !forexRes.ok || !indicesRes.ok || !commoditiesRes.ok) {
-        let errorMessage = "Error fetching data from Financial Modeling Prep. ";
-        if (stockRes.status === 403 || forexRes.status === 403 || indicesRes.status === 403 || commoditiesRes.status === 403) {
-            errorMessage += "Your API key might be invalid or usage limits exceeded (403 Forbidden).";
-        } else if (indicesRes.status === 404) {
-            errorMessage += "Indices URL might be incorrect (404 Not Found).";
-        } else {
-            errorMessage += `Status: ${stockRes.status || forexRes.status || indicesRes.status || commoditiesRes.status}`;
+    const responses = await Promise.all(fetchPromises);
+    const [cryptoRes, stockBatchRes, ...forexAndIndexRes] = responses;
+
+    // Process Crypto Data (CoinGecko)
+    let cryptoData = [];
+    if (cryptoRes.ok) {
+        cryptoData = await cryptoRes.json();
+        if (!Array.isArray(cryptoData)) cryptoData = [];
+    } else {
+        console.error("Error fetching crypto data:", cryptoRes.status, await cryptoRes.text());
+    }
+
+    // Process Stock Data (Alpha Vantage BATCH_STOCK_QUOTES)
+    let stockData = [];
+    if (stockBatchRes.ok) {
+        const rawStockData = await stockBatchRes.json();
+        if (rawStockData && rawStockData['Stock Quotes']) {
+            stockData = rawStockData['Stock Quotes'].map(item => ({
+                name: item['2. name'] || item['1. symbol'], // Alpha Vantage doesn't always provide full name in batch
+                symbol: item['1. symbol'],
+                price: parseFloat(item['8. latestPrice'] || item['5. price']), // Use latestPrice if available, otherwise price
+                changesPercentage: parseFloat(item['9. changePercent'] || item['10. change percent']) * 100, // Convert to percentage
+                marketCap: null // Alpha Vantage GLOBAL_QUOTE has MarketCap, BATCH_STOCK_QUOTES does not directly
+            }));
         }
-        console.error(errorMessage);
-        // Clear tables and show error
-        document.getElementById('stock-list').innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
-        document.getElementById('crypto-list').innerHTML = `<tr><td colspan="5" class="error-message">Loading crypto data...</td></tr>`; // Crypto might still load
-        document.getElementById('indices-list').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
-        document.getElementById('recommendations').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
-        // Proceed with potentially empty data for other parts
+    } else {
+        console.error("Error fetching stock data from Alpha Vantage:", stockBatchRes.status, await stockBatchRes.text());
     }
 
+    // Process Forex and Index Data (Alpha Vantage individual GLOBAL_QUOTE/CURRENCY_EXCHANGE_RATE)
+    let forexData = [];
+    let indicesData = [];
+    let commoditiesData = []; // Still empty as no direct API for commodities in this setup
 
-    // Retrieve JSON data
-    let cryptoData = await cryptoRes.json();
-    let stockData = await stockRes.json();
-    let forexData = await forexRes.json();
-    let indicesData = await indicesRes.json();
-    let commoditiesData = await commoditiesRes.json();
+    // Indices mappings for Alpha Vantage
+    const alphaVantageIndexMap = {
+        'SPX': 'S&P 500',
+        'DJI': 'Dow Jones Industrial Average',
+        'NASDAQ': 'NASDAQ Composite' // This is a general symbol, not an index future
+        // Add more if you find direct Alpha Vantage symbols for other indices
+    };
 
-    // Robust checks to ensure data are arrays
-    // If data is not an array, it's initialized to an empty array
-    if (!Array.isArray(stockData)) {
-        console.error("Invalid or missing stock data. Initializing to empty array.");
-        stockData = [];
-    }
-    if (!Array.isArray(cryptoData)) {
-        console.error("Invalid or missing crypto data. Initializing to empty array.");
-        cryptoData = [];
-    }
-    if (!Array.isArray(forexData)) {
-        console.error("Invalid or missing forex data. Initializing to empty array.");
-        forexData = [];
-    }
-    if (!Array.isArray(indicesData)) {
-        console.error("Invalid or missing indices data. Initializing to empty array.");
-        indicesData = [];
-    }
-    if (!Array.isArray(commoditiesData)) {
-        console.error("Invalid or missing commodities data. Initializing to empty array.");
-        commoditiesData = [];
+    for (let i = 0; i < forexAndIndexRes.length; i++) {
+        const res = forexAndIndexRes[i];
+        if (!res.ok) {
+            console.error(`Error fetching data from Alpha Vantage (index ${i}):`, res.status, await res.text());
+            continue;
+        }
+        const data = await res.json();
+
+        if (data && data['Realtime Currency Exchange Rate']) {
+            const rate = data['Realtime Currency Exchange Rate'];
+            forexData.push({
+                name: `${rate['2. From_Currency Name']}/${rate['4. To_Currency Name']}`,
+                symbol: `${rate['1. From_Currency Code']}${rate['3. To_Currency Code']}`,
+                price: parseFloat(rate['5. Exchange Rate']),
+                changesPercentage: null, // Not directly available in this endpoint
+                marketCap: null
+            });
+        } else if (data && data['Global Quote']) {
+            const quote = data['Global Quote'];
+            const symbol = quote['01. symbol'];
+            const name = alphaVantageIndexMap[symbol] || symbol; // Use mapped name or symbol
+            indicesData.push({
+                name: name,
+                symbol: symbol,
+                price: parseFloat(quote['05. price']),
+                changesPercentage: parseFloat(quote['10. change percent']) * 100,
+                marketCap: parseFloat(quote['06. volume']) * parseFloat(quote['05. price']) // Volume * Price as a proxy for market cap if not available
+            });
+        }
     }
 
     // Store data in global variables
@@ -107,7 +145,7 @@ async function fetchData() {
     allFetchedData.cryptos = cryptoData;
     allFetchedData.forex = forexData;
     allFetchedData.indices = indicesData;
-    allFetchedData.commodities = commoditiesData;
+    allFetchedData.commodities = commoditiesData; // Still empty
 
     // Update display based on the currently active section
     const currentActiveSectionId = document.querySelector('.nav-link.active')?.dataset.section || 'home';
@@ -223,7 +261,7 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
 
   const currencySymbol = getCurrencySymbol(currentCurrency); // Sera toujours '$'
 
-  // Data for Stock/Forex/Indices/Commodities table (FMP data)
+  // Data for Stock/Forex/Indices/Commodities table (Alpha Vantage data)
   const allNonCryptoAssets = [
     ...(Array.isArray(stocks) ? stocks : []),
     ...(Array.isArray(forex) ? forex : []),
@@ -253,11 +291,11 @@ function updateLists(stocks, cryptos, forex, indices, commodities) {
 
         const row = `
           <tr>
-            <td onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')">${asset.name}</td>
-            <td onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')">${formatPrice(price, currentCurrency)}</td>
-            <td onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')" class="${changeClass}">${change.toFixed(2)}% ${changeArrow}</td>
-            <td onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')">${cap ? formatPrice(cap, currentCurrency) : 'N/A'}</td>
-            <td onclick="showChartModal('${asset.symbol}', 'stock_fmp', '${asset.name}')">${recommendation}</td>
+            <td onclick="showChartModal('${asset.symbol}', 'stock_av', '${asset.name}')">${asset.name}</td>
+            <td onclick="showChartModal('${asset.symbol}', 'stock_av', '${asset.name}')">${formatPrice(price, currentCurrency)}</td>
+            <td onclick="showChartModal('${asset.symbol}', 'stock_av', '${asset.name}')" class="${changeClass}">${change.toFixed(2)}% ${changeArrow}</td>
+            <td onclick="showChartModal('${asset.symbol}', 'stock_av', '${asset.name}')">${cap ? formatPrice(cap, currentCurrency) : 'N/A'}</td>
+            <td onclick="showChartModal('${asset.symbol}', 'stock_av', '${asset.name}')">${recommendation}</td>
           </tr>
         `;
         stockListTableBody.innerHTML += row;
@@ -519,11 +557,12 @@ function closeChartModal() {
   document.getElementById('chartPeriodSelector').innerHTML = ''; // Clear period selector buttons
 }
 
-// Function to fetch historical data (simplifiée pour USD)
+// Function to fetch historical data
 async function fetchHistoricalData(symbol, type, period) {
-  const apiKey = '86QS6gyJZ8AhwRqq3Z4WrNbGnm3XjaTS';
+  const apiKey = ALPHA_VANTAGE_API_KEY; // Utilisation de la clé Alpha Vantage
   let url = '';
   let dataPath = '';
+  let interval = 'daily'; // Default to daily for stocks/indices/forex
 
   console.log(`Fetching historical data for ${symbol} (${type}) for period: ${period}`); // Debugging: log request
 
@@ -536,31 +575,29 @@ async function fetchHistoricalData(symbol, type, period) {
     else if (period === 'max') days = 'max'; // CoinGecko supporte 'max'
     else days = '30';
 
-    // CoinGecko sera toujours en USD
     url = `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=${days}`;
     dataPath = 'prices';
-  } else {
-    let endDate = new Date();
-    let startDate = new Date();
+  } else { // For stocks, forex, indices (Alpha Vantage)
+    let functionType = 'TIME_SERIES_DAILY'; // Default to daily for longer history
+    
+    // Alpha Vantage intraday data only goes back a few days/weeks depending on interval
+    // For periods like 7d, 30d, 90d, 365d, we might use TIME_SERIES_DAILY_ADJUSTED for more history
+    // For 'max', TIME_SERIES_DAILY_ADJUSTED is the best bet for longest history.
 
-    if (period === '7d') {
-        startDate.setDate(endDate.getDate() - 7);
-    } else if (period === '30d') {
-        startDate.setDate(endDate.getDate() - 30);
-    } else if (period === '90d') {
-        startDate.setMonth(endDate.getMonth() - 3);
-    } else if (period === '365d') {
-        startDate.setFullYear(endDate.getFullYear() - 1);
-    } else if (period === 'max') {
-        // Pour FMP, tenter une période très longue pour simuler le "max"
-        startDate.setFullYear(endDate.getFullYear() - 20); // Essayer 20 ans
-    } else {
-        startDate.setDate(endDate.getDate() - 30);
+    if (period === '7d' || period === '30d' || period === '90d' || period === '365d' || period === 'max') {
+        functionType = 'TIME_SERIES_DAILY_ADJUSTED';
+        // Alpha Vantage daily adjusted data provides full history.
+        // We will filter it client-side based on the period.
     }
 
-    const formatDate = (date) => date.toISOString().split('T')[0];
-    url = `https://financialmodelingprep.com/api/v3/historical-price-full/${symbol}?from=${formatDate(startDate)}&to=${formatDate(endDate)}&apikey=${apiKey}`;
-    dataPath = 'historical';
+    url = `https://www.alphavantage.co/query?function=${functionType}&symbol=${symbol}&apikey=${apiKey}&outputsize=full`; // outputsize=full for max history
+    dataPath = `Time Series (Daily)`; // Key for daily data
+
+    if (type === 'forex_av') { // Specific handling for Forex historical data in Alpha Vantage
+        functionType = 'FX_DAILY';
+        url = `https://www.alphavantage.co/query?function=${functionType}&from_symbol=${symbol.substring(0,3)}&to_symbol=${symbol.substring(3,6)}&apikey=${apiKey}&outputsize=full`;
+        dataPath = `Time Series FX (Daily)`;
+    }
   }
 
   console.log(`API URL for historical data: ${url}`); // Debugging: log URL
@@ -583,11 +620,49 @@ async function fetchHistoricalData(symbol, type, period) {
         date: new Date(item[0]).toLocaleDateString('en-US'),
         price: item[1]
       }));
-    } else if (data[dataPath]) {
-      historicalPrices = data[dataPath].map(item => ({
-          date: item.date,
-          price: item.close
-      })).reverse();
+    } else if (data[dataPath]) { // Alpha Vantage data
+      const timeSeries = data[dataPath];
+      if (!timeSeries) {
+          console.warn(`No time series data found for ${symbol} (${type}). API response:`, data);
+          return [];
+      }
+
+      const dates = Object.keys(timeSeries).sort(); // Sort dates chronologically
+      let filteredDates = dates;
+
+      // Filter dates based on period for Alpha Vantage data
+      const endDate = new Date();
+      let startDate = new Date();
+
+      if (period === '7d') {
+          startDate.setDate(endDate.getDate() - 7);
+      } else if (period === '30d') {
+          startDate.setDate(endDate.getDate() - 30);
+      } else if (period === '90d') {
+          startDate.setMonth(endDate.getMonth() - 3);
+      } else if (period === '365d') {
+          startDate.setFullYear(endDate.getFullYear() - 1);
+      } else if (period === 'max') {
+          // 'max' will use all available data from outputsize=full
+          // No further filtering needed here, as dates are already sorted
+      }
+
+      if (period !== 'max') {
+        filteredDates = dates.filter(dateStr => {
+            const date = new Date(dateStr);
+            return date >= startDate && date <= endDate;
+        });
+      }
+      
+      historicalPrices = filteredDates.map(dateStr => {
+          const item = timeSeries[dateStr];
+          const closePrice = parseFloat(item['4. close'] || item['5. adjusted close']); // Use adjusted close if available
+          return {
+              date: new Date(dateStr).toLocaleDateString('en-US'),
+              price: closePrice
+          };
+      });
+
     } else {
       console.warn(`No historical data found for ${symbol} (${type}). API response:`, data);
       return [];
@@ -712,7 +787,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Interval de rafraîchissement des données (très long ici, ajuster si nécessaire)
-  setInterval(fetchData, 1000000);
+  // Interval de rafraîchissement des données (pour 500 requêtes sur 24h = 172800 ms)
+  setInterval(fetchData, 172800);
 });
 
