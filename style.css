@@ -1,26 +1,26 @@
 :root {
   /* Couleurs du mode sombre */
-  --bg-color: #1a1a1a;
-  --top-bar-bg: #2a2a2a;
-  --card-bg: #2a2a2a;
-  --text-color: #e0e0e0;
-  --link-color: #61dafb;
-  --border-color: #444;
-  --shadow-color: rgba(0,0,0,0.3);
-  --header-bg: #333;
-  --header-text: #b0b0b0;
-  --button-bg: #61dafb;
-  --button-text: #1a1a1a;
-  --button-hover-bg: #444;
-  --button-hover-text: #61dafb;
+  --bg-color: #121212; /* Encore plus sombre */
+  --top-bar-bg: #1e1e1e; /* Plus sombre */
+  --card-bg: #1e1e1e; /* Plus sombre */
+  --text-color: #e0e0e0; /* Texte général */
+  --link-color: #FFFFFF; /* Bleu remplacé par blanc */
+  --border-color: #333333; /* Bordures plus sombres */
+  --shadow-color: rgba(0,0,0,0.5); /* Ombres plus prononcées */
+  --header-bg: #282828; /* En-têtes de tableau plus sombres */
+  --header-text: #b0b0b0; /* Texte des en-têtes */
+  --button-bg: #ffffff; /* Couleur des boutons (bleu clair) */
+  --button-text: #000000; /* Texte des boutons (noir pour contraste sur bleu) */
+  --button-hover-bg: #444444; /* Fond des boutons au survol */
+  --button-hover-text: #ffffff; /* Texte des boutons au survol */
   /* Couleurs pour le modal du graphique */
-  --modal-bg: rgba(0,0,0,0.8);
-  --modal-content-bg: #2a2a2a;
-  --close-button-color: #b0b0b0;
-  --close-button-hover-color: #e0e0e0;
-  --error-color: #ff4500;
-  --gain-color: #39FF14;
-  --loss-color: #ff4500;
+  --modal-bg: rgba(0,0,0,0.9); /* Fond du modal plus opaque */
+  --modal-content-bg: #1e1e1e; /* Contenu du modal plus sombre */
+  --close-button-color: #b0b0b0; /* Couleur du bouton de fermeture */
+  --close-button-hover-color: #FFFFFF; /* Couleur du bouton de fermeture au survol */
+  --error-color: #ff4500; /* Couleur des messages d'erreur (orange vif) */
+  --gain-color: #39FF14; /* Vert vif pour les gains */
+  --loss-color: #FF0000; /* Rouge vif pour les pertes */
 }
 
 body {
@@ -56,7 +56,7 @@ body {
   font-family: 'Montserrat', sans-serif;
   font-size: 1.8em;
   font-weight: 700;
-  color: var(--link-color);
+  color: var(--link-color); /* Utilise maintenant la couleur de lien (blanc) */
   text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
 }
 
@@ -174,7 +174,7 @@ body {
 }
 
 .home-section h1 {
-  color: var(--link-color);
+  color: var(--link-color); /* Utilise maintenant la couleur de lien (blanc) */
   font-size: 2.5em;
   margin-bottom: 15px;
 }
@@ -231,12 +231,12 @@ body {
 }
 
 .data-table th[data-sort-direction="asc"] .sort-arrow {
-  border-bottom: 5px solid var(--link-color);
+  border-bottom: 5px solid var(--link-color); /* Utilise la couleur de lien (blanc) */
   transform: rotate(0deg);
 }
 
 .data-table th[data-sort-direction="desc"] .sort-arrow {
-  border-top: 5px solid var(--link-color);
+  border-top: 5px solid var(--link-color); /* Utilise la couleur de lien (blanc) */
   transform: rotate(180deg);
 }
 
@@ -256,12 +256,12 @@ body {
 }
 
 .gain {
-  color: var(--gain-color);
+  color: var(--gain-color); /* Vert vif */
   font-weight: 700;
 }
 
 .loss {
-  color: var(--loss-color);
+  color: var(--loss-color); /* Rouge vif */
   font-weight: 700;
 }
 
@@ -320,13 +320,13 @@ body {
 }
 
 .news-content h4 a {
-  color: var(--link-color);
+  color: var(--link-color); /* Utilise maintenant la couleur de lien (blanc) */
   text-decoration: none;
   transition: color 0.3s ease;
 }
 
 .news-content h4 a:hover {
-  color: #88e0ff;
+  color: #CCCCCC; /* Un gris clair au survol pour les liens blancs */
 }
 
 .news-date {
@@ -390,7 +390,7 @@ body {
 }
 
 .modal-content h2 {
-  color: var(--link-color);
+  color: var(--link-color); /* Utilise maintenant la couleur de lien (blanc) */
   margin-top: 0;
   margin-bottom: 20px;
   text-align: center;

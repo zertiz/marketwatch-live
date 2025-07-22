@@ -293,7 +293,7 @@ async function fetchNews() {
 
       data.items.forEach((item, index) => {
         // Limit to 4 articles per feed to avoid overload
-        if (index >= 4) return;
+        if (index >= 5) return;
 
         const title = item.title ?? '';
         const link = item.link ?? '';
