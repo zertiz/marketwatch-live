@@ -10,7 +10,7 @@ let allFetchedData = {
   indices: [],
   commodities: []
 };
-let lastActiveSection = 'home';
+let lastActiveSection = 'home'; // Sera mis à jour pour 'crypto' dans DOMContentLoaded
 let myChart; // Pour stocker l'instance du graphique Chart.js
 let currentChartSymbol = '';
 let currentChartType = '';
@@ -96,25 +96,27 @@ async function initializeFirebase() {
 async function fetchData() {
   const apiKey = '8C6eqw9VAcDUFxs1UERgRgY64pNe9xYd'; // Votre clé API FMP
   const cryptoUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana,cardano,ripple,dogecoin,tron,polkadot,polygon,chainlink';
-  // REDUCTION DES SYMBOLES FMP POUR ÉVITER LE 429
-  const stockUrl = `https://financialmodelingprep.com/api/v3/quote/AAPL,MSFT?apikey=${apiKey}`; // Réduit à 2 actions
-  const forexUrl = `https://financialmodelingprep.com/api/v3/quote/EURUSD?apikey=${apiKey}`; // Réduit à 1 paire
-  const indicesUrl = `https://financialmodelingprep.com/api/v3/quote/%5EDJI?apikey=${apiKey}`; // Réduit à 1 indice
-  const commoditiesUrl = `https://financialmodelingprep.com/api/v3/quote/GCUSD?apikey=${apiKey}`; // Réduit à 1 matière première
+  
+  // URLs FMP avec un seul symbole pour minimiser les requêtes et tester le 429
+  const stockUrl = `https://financialmodelingprep.com/api/v3/quote/AAPL?apikey=${apiKey}`; 
+  const forexUrl = `https://financialmodelingprep.com/api/v3/quote/EURUSD?apikey=${apiKey}`; 
+  const indicesUrl = `https://financialmodelingprep.com/api/v3/quote/%5EDJI?apikey=${apiKey}`; 
+  const commoditiesUrl = `https://financialmodelingprep.com/api/v3/quote/GCUSD?apikey=${apiKey}`; 
 
   // Display loading messages for main tables
   document.getElementById('stock-list').innerHTML = '<tr><td colspan="5">Chargement des données boursières...</td></tr>';
   document.getElementById('crypto-list').innerHTML = '<tr><td colspan="5">Chargement des données crypto...</td></tr>';
   document.getElementById('indices-list').innerHTML = '<li>Chargement des indices du marché...</li>';
+  document.getElementById('commodities-list').innerHTML = '<li>Chargement des matières premières...</li>'; // Assurez-vous d'avoir cet ID dans votre HTML
   document.getElementById('recommendations').innerHTML = '<li>Chargement des recommandations...</li>';
 
   // Array to hold all fetch promises
   const fetchPromises = [
     { name: 'crypto', url: cryptoUrl },
-    { name: 'stocks', url: stockUrl },
-    { name: 'forex', url: forexUrl },
-    { name: 'indices', url: indicesUrl },
-    { name: 'commodities', url: commoditiesUrl }
+    { name: 'stocks', url: stockUrl, isFMP: true },
+    { name: 'forex', url: forexUrl, isFMP: true },
+    { name: 'indices', url: indicesUrl, isFMP: true },
+    { name: 'commodities', url: commoditiesUrl, isFMP: true }
   ];
 
   // Temporary storage for fetched data
@@ -131,36 +133,35 @@ async function fetchData() {
 
     for (let i = 0; i < results.length; i++) {
       const result = results[i];
-      const { name, url } = fetchPromises[i];
+      const { name, url, isFMP } = fetchPromises[i];
 
       if (result.status === 'fulfilled') {
         try {
           const data = await result.value.json();
           console.log(`[DEBUG] Données brutes reçues pour ${name} (URL: ${url}):`, data);
 
-          // Robust checks and assignments
-          if (name === 'crypto') {
-            tempFetchedData.cryptos = Array.isArray(data) ? data : [];
-          } else if (name === 'stocks') {
-            tempFetchedData.stocks = Array.isArray(data) ? data : [];
-          } else if (name === 'forex') {
-            tempFetchedData.forex = Array.isArray(data) ? data : [];
-          } else if (name === 'indices') {
-            // Spécifiquement pour les indices, si ce n'est pas un tableau, loggez l'objet entier
-            if (!Array.isArray(data)) {
-                console.error(`[ERROR] Données d'indices reçues non conformes (non un tableau). Objet reçu:`, data);
-                // Vérifier si l'objet contient un message d'erreur de FMP
-                // Correction ici: utiliser la notation entre crochets pour "Error Message"
-                if (data && data['Error Message'] && data['Error Message'].includes('Free plan is limited to US stocks only')) {
-                    tempFetchedData.indices = { error: "Limitation du plan FMP: Indices non disponibles sur le plan gratuit." };
-                } else {
-                    tempFetchedData.indices = []; // Assurez-vous que c'est un tableau vide si non conforme
-                }
-            } else {
-                tempFetchedData.indices = data;
-            }
-          } else if (name === 'commodities') {
-            tempFetchedData.commodities = Array.isArray(data) ? data : [];
+          if (isFMP && data && data['Error Message'] && (result.value.status === 403 || result.value.status === 429)) {
+            // Gérer spécifiquement les erreurs FMP (403/429) avec message clair
+            const errorMessage = `Limitation du plan FMP: Données ${name} non disponibles sur le plan gratuit.`;
+            if (name === 'stocks') tempFetchedData.stocks = { error: errorMessage };
+            else if (name === 'forex') tempFetchedData.forex = { error: errorMessage };
+            else if (name === 'indices') tempFetchedData.indices = { error: errorMessage };
+            else if (name === 'commodities') tempFetchedData.commodities = { error: errorMessage };
+            console.error(`[ERROR] ${errorMessage}`);
+          } else if (Array.isArray(data)) {
+            // Si c'est un tableau, assigner normalement
+            if (name === 'crypto') tempFetchedData.cryptos = data;
+            else if (name === 'stocks') tempFetchedData.stocks = data;
+            else if (name === 'forex') tempFetchedData.forex = data;
+            else if (name === 'indices') tempFetchedData.indices = data;
+            else if (name === 'commodities') tempFetchedData.commodities = data;
+          } else {
+            // Si ce n'est pas un tableau et pas une erreur FMP spécifique, c'est inattendu.
+            console.warn(`[WARN] Données ${name} reçues non conformes (non un tableau). Objet reçu:`, data);
+            if (name === 'stocks') tempFetchedData.stocks = { error: `Données ${name} inattendues.` };
+            else if (name === 'forex') tempFetchedData.forex = { error: `Données ${name} inattendues.` };
+            else if (name === 'indices') tempFetchedData.indices = { error: `Données ${name} inattendues.` };
+            else if (name === 'commodities') tempFetchedData.commodities = { error: `Données ${name} inattendues.` };
           }
         } catch (jsonError) {
           console.error(`[ERROR] Erreur de parsing JSON pour ${name} (URL: ${url}):`, jsonError);
@@ -168,6 +169,7 @@ async function fetchData() {
           if (name === 'stocks') document.getElementById('stock-list').innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
           if (name === 'crypto') document.getElementById('crypto-list').innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
           if (name === 'indices') document.getElementById('indices-list').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
+          if (name === 'commodities-list') document.getElementById('commodities-list').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
           if (name === 'recommendations') document.getElementById('recommendations').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
         }
       } else {
@@ -177,17 +179,24 @@ async function fetchData() {
             errorMessage += ` Statut: ${result.reason.status}`;
             if (result.reason.status === 403) {
                 errorMessage += " (Clé API invalide ou limites dépassées)";
-            } else if (result.reason.status === 429) { // Specific message for 429
+            } else if (result.reason.status === 429) {
                 errorMessage += " (Trop de requêtes - Limite API dépassée)";
             }
         } else if (result.reason instanceof Error) {
             errorMessage += ` Message: ${result.reason.message}`;
         }
-        // Afficher un message d'erreur dans l'UI
-        if (name === 'stocks') document.getElementById('stock-list').innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
-        if (name === 'crypto') document.getElementById('crypto-list').innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
-        if (name === 'indices') document.getElementById('indices-list').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
-        if (name === 'recommendations') document.getElementById('recommendations').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
+        // Stocker l'erreur dans tempFetchedData pour l'affichage
+        if (name === 'stocks') tempFetchedData.stocks = { error: errorMessage };
+        else if (name === 'forex') tempFetchedData.forex = { error: errorMessage };
+        else if (name === 'indices') tempFetchedData.indices = { error: errorMessage };
+        else if (name === 'commodities') tempFetchedData.commodities = { error: errorMessage };
+        
+        // Afficher un message d'erreur dans l'UI si l'élément existe
+        if (name === 'stocks' && document.getElementById('stock-list')) document.getElementById('stock-list').innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
+        if (name === 'crypto' && document.getElementById('crypto-list')) document.getElementById('crypto-list').innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
+        if (name === 'indices' && document.getElementById('indices-list')) document.getElementById('indices-list').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
+        if (name === 'commodities' && document.getElementById('commodities-list')) document.getElementById('commodities-list').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
+        if (name === 'recommendations' && document.getElementById('recommendations')) document.getElementById('recommendations').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
       }
     }
 
@@ -195,18 +204,29 @@ async function fetchData() {
     allFetchedData = tempFetchedData;
 
     // --- Appel des fonctions de mise à jour de l'UI ---
-    // Gérer spécifiquement les indices si c'est un objet d'erreur
+    // S'assurer que les données passées à updateLists/updateIndices sont toujours des tableaux,
+    // ou des objets d'erreur spécifiques pour l'affichage.
+    const stocksToUpdate = Array.isArray(allFetchedData.stocks) ? allFetchedData.stocks : [];
+    const cryptosToUpdate = Array.isArray(allFetchedData.cryptos) ? allFetchedData.cryptos : [];
+    const forexToUpdate = Array.isArray(allFetchedData.forex) ? allFetchedData.forex : [];
     const indicesToUpdate = Array.isArray(allFetchedData.indices) ? allFetchedData.indices : [];
+    const commoditiesToUpdate = Array.isArray(allFetchedData.commodities) ? allFetchedData.commodities : [];
 
+
+    // Mettre à jour les listes principales
     const currentActiveSectionId = document.querySelector('.nav-link.active')?.dataset.section || 'home';
     if (currentActiveSectionId === 'stocks') {
-        updateLists(allFetchedData.stocks, [], allFetchedData.forex, indicesToUpdate, allFetchedData.commodities);
+        updateLists(stocksToUpdate, [], forexToUpdate, indicesToUpdate, commoditiesToUpdate);
     } else if (currentActiveSectionId === 'crypto') {
-        updateLists([], allFetchedData.cryptos, [], [], []);
+        updateLists([], cryptosToUpdate, [], [], []);
     } else { // 'home' or 'news' or if no section is active
-        updateLists(allFetchedData.stocks, allFetchedData.cryptos, allFetchedData.forex, indicesToUpdate, allFetchedData.commodities);
+        updateLists(stocksToUpdate, cryptosToUpdate, forexToUpdate, indicesToUpdate, commoditiesToUpdate);
     }
-    updateIndices([...indicesToUpdate, ...allFetchedData.commodities]);
+    
+    // Mettre à jour les sidebars
+    updateIndices(allFetchedData.indices); // Passe l'objet d'erreur si applicable
+    updateCommodities(allFetchedData.commodities); // Nouvelle fonction pour les matières premières
+    updateRecommendations(stocksToUpdate, cryptosToUpdate, forexToUpdate, indicesToUpdate, commoditiesToUpdate);
 
   } catch (error) {
     console.error("Erreur générale lors du chargement des données:", error);
@@ -214,6 +234,7 @@ async function fetchData() {
     document.getElementById('stock-list').innerHTML = `<tr><td colspan="5" class="error-message">${genericErrorMessage}</td></tr>`;
     document.getElementById('crypto-list').innerHTML = `<tr><td colspan="5" class="error-message">${genericErrorMessage}</td></tr>`;
     document.getElementById('indices-list').innerHTML = `<li><span class="error-message">${genericErrorMessage}</span></li>`;
+    document.getElementById('commodities-list').innerHTML = `<li><span class="error-message">${genericErrorMessage}</span></li>`;
     document.getElementById('recommendations').innerHTML = `<li><span class="error-message">${genericErrorMessage}</span></li>`;
   }
 }
@@ -242,7 +263,8 @@ async function fetchNews() {
 
     for (const feed of feeds) {
       // NOUVEAU PROXY CORS
-      const proxyUrl = 'https://cors-anywhere.herokuapp.com/' + encodeURIComponent(feed.url);
+      const proxyUrl = 'https://cors-anywhere.herokuapp.com/' + feed.url; // Ne pas encoder l'URL complète du flux RSS ici
+      console.log(`[DEBUG] Requête actualités via proxy: ${proxyUrl}`);
       const res = await fetch(proxyUrl);
       const data = await res.text(); // Utilisez .text() car cors-anywhere renvoie directement le contenu
 
@@ -385,7 +407,12 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
   // --- NOUVEAUX LOGS DE DÉBOGAGE ---
   console.log("[DEBUG] updateLists - Tentative d'affichage des actions. Nombre d'éléments:", sortedStocks.length);
   if (sortedStocks.length === 0) {
-      stockListTableBody.innerHTML = `<tr><td colspan="5">Aucune donnée d'actions, de forex, d'indices ou de matières premières disponible.</td></tr>`;
+      // Afficher le message d'erreur si stocks est un objet d'erreur
+      if (stocks && stocks.error) {
+          stockListTableBody.innerHTML = `<tr><td colspan="5" class="error-message">${stocks.error}</td></tr>`;
+      } else {
+          stockListTableBody.innerHTML = `<tr><td colspan="5">Aucune donnée d'actions, de forex, d'indices ou de matières premières disponible.</td></tr>`;
+      }
   } else {
       sortedStocks.forEach(asset => {
         const change = asset.changesPercentage ?? 0;
@@ -452,27 +479,6 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
       });
       console.log("[DEBUG] cryptoListTableBody.innerHTML après ajout des lignes:", cryptoListTableBody.innerHTML); // Log du contenu final
   }
-
-
-  // Data for Recommendations sidebar
-  const allAssetsForRecommendations = [
-    ...(Array.isArray(stocks) ? stocks : []),
-    ...(Array.isArray(cryptos) ? cryptos : []),
-    ...(Array.isArray(forex) ? forex : []),
-    ...(Array.isArray(indices) ? indices : []),
-    ...(Array.isArray(commodities) ? commodities : [])
-  ];
-
-  console.log("[DEBUG] updateLists - Tentative d'affichage des recommandations. Nombre d'éléments:", allAssetsForRecommendations.length);
-  if (allAssetsForRecommendations.length === 0) {
-      recList.innerHTML = '<li>Aucune recommandation disponible.</li>';
-  } else {
-      recList.innerHTML = allAssetsForRecommendations.map(asset => {
-        const change = asset.price_change_percentage_24h ?? asset.changesPercentage ?? 0;
-        const recommendation = change > 3 ? '📈 Acheter' : change < -3 ? '📉 Vendre' : '🤝 Conserver';
-        return `<li>${asset.name}: ${recommendation}</li>`;
-      }).join('');
-  }
 }
 
 // Function to update the indices list in the sidebar
@@ -507,6 +513,75 @@ function updateIndices(data) {
   }
 }
 
+// Nouvelle fonction pour mettre à jour la liste des matières premières
+function updateCommodities(data) {
+    const list = document.getElementById('commodities-list');
+    if (!list) return;
+
+    console.log("[DEBUG] updateCommodities - Données reçues:", data);
+
+    if (data && data.error) {
+        list.innerHTML = `<li><span class="error-message">${data.error}</span></li>`;
+        console.error("[ERROR] FMP Commodities API Error:", data.error);
+        return;
+    }
+
+    if (!Array.isArray(data)) {
+        console.error("Les données pour updateCommodities ne sont pas un tableau.", data);
+        list.innerHTML = '<li>Aucune matière première disponible.</li>';
+        return;
+    }
+
+    console.log("[DEBUG] updateCommodities - Tentative d'affichage des matières premières. Nombre d'éléments:", data.length);
+    if (data.length === 0) {
+        list.innerHTML = '<li>Aucune matière première disponible.</li>';
+    } else {
+        list.innerHTML = data.map(item => {
+            const change = item.changesPercentage?.toFixed(2);
+            const cls = change >= 0 ? 'gain' : 'loss';
+            const changeArrow = change >= 0 ? '▲' : '▼';
+            return `<li>${item.name}: <span class="${cls}">${change}% ${changeArrow}</span></li>`;
+        }).join('');
+    }
+}
+
+// Fonction pour mettre à jour les recommandations (inclut maintenant les messages d'erreur FMP)
+function updateRecommendations(stocks, cryptos, forex, indices, commodities) {
+  const recList = document.getElementById('recommendations');
+  if (!recList) return;
+
+  const allAssetsForRecommendations = [
+    ...(Array.isArray(stocks) ? stocks : []),
+    ...(Array.isArray(cryptos) ? cryptos : []),
+    ...(Array.isArray(forex) ? forex : []),
+    ...(Array.isArray(indices) ? indices : []),
+    ...(Array.isArray(commodities) ? commodities : [])
+  ];
+
+  // Vérifier si des erreurs FMP spécifiques sont présentes et les afficher en priorité
+  let errorMessage = '';
+  if (stocks && stocks.error) errorMessage += `<li><span class="error-message">${stocks.error}</span></li>`;
+  if (forex && forex.error) errorMessage += `<li><span class="error-message">${forex.error}</span></li>`;
+  if (indices && indices.error) errorMessage += `<li><span class="error-message">${indices.error}</span></li>`;
+  if (commodities && commodities.error) errorMessage += `<li><span class="error-message">${commodities.error}</span></li>`;
+
+  if (errorMessage) {
+      recList.innerHTML = errorMessage;
+      return;
+  }
+
+  if (allAssetsForRecommendations.length === 0) {
+      recList.innerHTML = '<li>Aucune recommandation disponible.</li>';
+  } else {
+      recList.innerHTML = allAssetsForRecommendations.map(asset => {
+        const change = asset.price_change_percentage_24h ?? asset.changesPercentage ?? 0;
+        const recommendation = change > 3 ? '📈 Acheter' : change < -3 ? '📉 Vendre' : '🤝 Conserver';
+        return `<li>${asset.name}: ${recommendation}</li>`;
+      }).join('');
+  }
+}
+
+
 // Function to filter and display search results
 function performSearch(query) {
   const lowerCaseQuery = query.toLowerCase();
@@ -519,10 +594,17 @@ function performSearch(query) {
     document.querySelectorAll('.content-section').forEach(sec => sec.classList.add('hidden'));
     document.getElementById(lastActiveSection).classList.remove('hidden');
 
+    // Assurez-vous que les données passées sont des tableaux ou des objets d'erreur
+    const stocksToUpdate = Array.isArray(allFetchedData.stocks) ? allFetchedData.stocks : [];
+    const cryptosToUpdate = Array.isArray(allFetchedData.cryptos) ? allFetchedData.cryptos : [];
+    const forexToUpdate = Array.isArray(allFetchedData.forex) ? allFetchedData.forex : [];
+    const indicesToUpdate = Array.isArray(allFetchedData.indices) ? allFetchedData.indices : [];
+    const commoditiesToUpdate = Array.isArray(allFetchedData.commodities) ? allFetchedData.commodities : [];
+
     if (lastActiveSection === 'stocks') {
-      updateLists(allFetchedData.stocks, [], allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities);
+      updateLists(stocksToUpdate, [], forexToUpdate, indicesToUpdate, commoditiesToUpdate);
     } else if (lastActiveSection === 'crypto') {
-      updateLists([], allFetchedData.cryptos, [], [], []);
+      updateLists([], cryptosToUpdate, [], [], []);
     } else if (lastActiveSection === 'news') {
       fetchNews();
     } else if (lastActiveSection === 'home') {
@@ -530,7 +612,9 @@ function performSearch(query) {
         document.getElementById('crypto').classList.add('hidden');
         document.getElementById('news').classList.add('hidden');
     }
-    updateIndices([...allFetchedData.indices, ...allFetchedData.commodities]);
+    updateIndices(allFetchedData.indices);
+    updateCommodities(allFetchedData.commodities);
+    updateRecommendations(stocksToUpdate, cryptosToUpdate, forexToUpdate, indicesToUpdate, commoditiesToUpdate);
     return;
   }
 
@@ -539,21 +623,22 @@ function performSearch(query) {
     lastActiveSection = currentActiveNavLink.dataset.section;
   }
 
-  const filteredStocks = allFetchedData.stocks.filter(asset =>
+  // Filter only array data, ignore error objects
+  const filteredStocks = Array.isArray(allFetchedData.stocks) ? allFetchedData.stocks.filter(asset =>
     asset.name.toLowerCase().includes(lowerCaseQuery) || asset.symbol.toLowerCase().includes(lowerCaseQuery)
-  );
-  const filteredCryptos = allFetchedData.cryptos.filter(asset =>
+  ) : [];
+  const filteredCryptos = Array.isArray(allFetchedData.cryptos) ? allFetchedData.cryptos.filter(asset =>
     asset.name.toLowerCase().includes(lowerCaseQuery) || asset.symbol?.toLowerCase().includes(lowerCaseQuery) || asset.id?.toLowerCase().includes(lowerCaseQuery)
-  );
-  const filteredForex = allFetchedData.forex.filter(asset =>
+  ) : [];
+  const filteredForex = Array.isArray(allFetchedData.forex) ? allFetchedData.forex.filter(asset =>
     asset.name.toLowerCase().includes(lowerCaseQuery) || asset.symbol.toLowerCase().includes(lowerCaseQuery)
-  );
-  const filteredIndices = allFetchedData.indices.filter(asset =>
+  ) : [];
+  const filteredIndices = Array.isArray(allFetchedData.indices) ? allFetchedData.indices.filter(asset =>
     asset.name.toLowerCase().includes(lowerCaseQuery) || asset.symbol?.toLowerCase().includes(lowerCaseQuery)
-  );
-  const filteredCommodities = allFetchedData.commodities.filter(asset =>
+  ) : [];
+  const filteredCommodities = Array.isArray(allFetchedData.commodities) ? allFetchedData.commodities.filter(asset =>
     asset.name.toLowerCase().includes(lowerCaseQuery) || asset.symbol.toLowerCase().includes(lowerCaseQuery)
-  );
+  ) : [];
 
   document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
   document.querySelector('.nav-link[data-section="stocks"]').classList.add('active');
@@ -565,7 +650,9 @@ function performSearch(query) {
   document.getElementById('home').classList.add('hidden');
 
   updateLists(filteredStocks, filteredCryptos, filteredForex, filteredIndices, filteredCommodities);
-  updateIndices([...filteredIndices, ...allFetchedData.commodities]);
+  updateIndices(allFetchedData.indices); // Passe l'objet d'erreur si applicable
+  updateCommodities(allFetchedData.commodities); // Passe l'objet d'erreur si applicable
+  updateRecommendations(filteredStocks, filteredCryptos, filteredForex, filteredIndices, filteredCommodities);
 }
 
 // Handle navigation between sections
@@ -584,10 +671,17 @@ function handleNavigation() {
       const activeSection = document.getElementById(section);
       if (activeSection) activeSection.classList.remove('hidden');
 
+      // Assurez-vous que les données passées sont des tableaux ou des objets d'erreur
+      const stocksToUpdate = Array.isArray(allFetchedData.stocks) ? allFetchedData.stocks : [];
+      const cryptosToUpdate = Array.isArray(allFetchedData.cryptos) ? allFetchedData.cryptos : [];
+      const forexToUpdate = Array.isArray(allFetchedData.forex) ? allFetchedData.forex : [];
+      const indicesToUpdate = Array.isArray(allFetchedData.indices) ? allFetchedData.indices : [];
+      const commoditiesToUpdate = Array.isArray(allFetchedData.commodities) ? allFetchedData.commodities : [];
+
       if (section === 'stocks') {
-        updateLists(allFetchedData.stocks, [], allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities);
+        updateLists(stocksToUpdate, [], forexToUpdate, indicesToUpdate, commoditiesToUpdate);
       } else if (section === 'crypto') {
-        updateLists([], allFetchedData.cryptos, [], [], []);
+        updateLists([], cryptosToUpdate, [], [], []);
       } else if (section === 'news') {
         fetchNews();
       } else if (section === 'home') {
@@ -863,11 +957,18 @@ document.addEventListener('DOMContentLoaded', () => {
       // Mettre à jour la direction pour l'en-tête cliqué
       header.dataset.sortDirection = sortDirection;
 
+      // Assurez-vous que les données passées sont des tableaux ou des objets d'erreur
+      const stocksToUpdate = Array.isArray(allFetchedData.stocks) ? allFetchedData.stocks : [];
+      const cryptosToUpdate = Array.isArray(allFetchedData.cryptos) ? allFetchedData.cryptos : [];
+      const forexToUpdate = Array.isArray(allFetchedData.forex) ? allFetchedData.forex : [];
+      const indicesToUpdate = Array.isArray(allFetchedData.indices) ? allFetchedData.indices : [];
+      const commoditiesToUpdate = Array.isArray(allFetchedData.commodities) ? allFetchedData.commodities : [];
+
       // Appliquer le tri et mettre à jour la liste
       if (tableId === 'stock-list') {
-        updateLists(allFetchedData.stocks, [], allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities, { tableId: tableId, key: sortKey, direction: sortDirection });
+        updateLists(stocksToUpdate, [], forexToUpdate, indicesToUpdate, commoditiesToUpdate, { tableId: tableId, key: sortKey, direction: sortDirection });
       } else if (tableId === 'crypto-list') {
-        updateLists([], allFetchedData.cryptos, [], [], [], { tableId: tableId, key: sortKey, direction: sortDirection });
+        updateLists([], cryptosToUpdate, [], [], [], { tableId: tableId, key: sortKey, direction: sortDirection });
       }
     });
   });
@@ -875,4 +976,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Interval de rafraîchissement des données (environ toutes les 25 minutes)
   setInterval(fetchData, 1500000); // 1500000 ms = 25 minutes
+
+  // Définir la section 'crypto' comme active au démarrage
+  document.querySelector('.nav-link[data-section="home"]').classList.remove('active');
+  document.querySelector('.nav-link[data-section="crypto"]').classList.add('active');
+  document.getElementById('home').classList.add('hidden');
+  document.getElementById('crypto').classList.remove('hidden');
+  document.getElementById('stocks').classList.add('hidden'); // Assurez-vous que stocks est caché
+  document.getElementById('news').classList.add('hidden'); // Assurez-vous que news est caché
 });
