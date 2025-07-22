@@ -372,7 +372,6 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
   const currencySymbol = getCurrencySymbol(currentCurrency); // Will always be '$'
 
   // Data for Stock/Forex/Indices/Commodities table (FMP data)
-  // Concaténer seulement si ce sont des tableaux, sinon gérer l'erreur
   const allNonCryptoAssets = [];
   if (Array.isArray(stocks)) allNonCryptoAssets.push(...stocks);
   if (Array.isArray(forex)) allNonCryptoAssets.push(...forex);
@@ -397,6 +396,7 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
   console.log("[DEBUG] updateLists - Tentative d'affichage des actions. Nombre d'éléments:", sortedStocks.length);
   if (sortedStocks.length === 0) {
       let errorMessage = '';
+      // Vérifier explicitement si les données individuelles sont des objets d'erreur
       if (stocks && stocks.error) errorMessage = stocks.error;
       else if (forex && forex.error) errorMessage = forex.error;
       else if (indices && indices.error) errorMessage = indices.error;
@@ -405,6 +405,7 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
       if (errorMessage) {
           stockListTableBody.innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
       } else {
+          // Si pas d'erreur spécifique mais tableau vide
           stockListTableBody.innerHTML = `<tr><td colspan="5">Aucune donnée d'actions, de forex, d'indices ou de matières premières disponible.</td></tr>`;
       }
   } else {
@@ -892,6 +893,40 @@ function renderChart(historicalData, assetName, ctx, currencyCode) {
 document.addEventListener('DOMContentLoaded', () => {
   // initializeFirebase(); // Initialisation Firebase retirée
   handleNavigation(); // Initialise la navigation et la visibilité des sections
+
+  // Définir la section 'crypto' comme active au démarrage
+  const homeNavLink = document.querySelector('.nav-link[data-section="home"]');
+  const cryptoNavLink = document.querySelector('.nav-link[data-section="crypto"]');
+  const homeSection = document.getElementById('home');
+  const cryptoSection = document.getElementById('crypto');
+  const stocksSection = document.getElementById('stocks');
+  const newsSection = document.getElementById('news');
+
+  console.log("[INIT] DOMContentLoaded - Avant manipulation des classes.");
+  console.log("  homeNavLink:", homeNavLink ? "found" : "not found", "active:", homeNavLink?.classList.contains('active'));
+  console.log("  cryptoNavLink:", cryptoNavLink ? "found" : "not found", "active:", cryptoNavLink?.classList.contains('active'));
+  console.log("  homeSection:", homeSection ? "found" : "not found", "hidden:", homeSection?.classList.contains('hidden'));
+  console.log("  cryptoSection:", cryptoSection ? "found" : "not found", "hidden:", cryptoSection?.classList.contains('hidden'));
+  console.log("  stocksSection:", stocksSection ? "found" : "not found", "hidden:", stocksSection?.classList.contains('hidden'));
+  console.log("  newsSection:", newsSection ? "found" : "not found", "hidden:", newsSection?.classList.contains('hidden'));
+
+
+  if (homeNavLink) homeNavLink.classList.remove('active');
+  if (cryptoNavLink) cryptoNavLink.classList.add('active');
+
+  if (homeSection) homeSection.classList.add('hidden');
+  if (stocksSection) stocksSection.classList.add('hidden');
+  if (newsSection) newsSection.classList.add('hidden');
+  if (cryptoSection) cryptoSection.classList.remove('hidden'); // S'assurer que crypto est visible
+
+  console.log("[INIT] DOMContentLoaded - Après manipulation des classes.");
+  console.log("  homeNavLink:", homeNavLink ? "found" : "not found", "active:", cryptoNavLink?.classList.contains('active')); // Correction: vérifier cryptoNavLink
+  console.log("  cryptoNavLink:", cryptoNavLink ? "found" : "not found", "active:", cryptoNavLink?.classList.contains('active'));
+  console.log("  homeSection:", homeSection ? "found" : "not found", "hidden:", homeSection?.classList.contains('hidden'));
+  console.log("  cryptoSection:", cryptoSection ? "found" : "not found", "hidden:", cryptoSection?.classList.contains('hidden'));
+  console.log("  stocksSection:", stocksSection ? "found" : "not found", "hidden:", stocksSection?.classList.contains('hidden'));
+  console.log("  newsSection:", newsSection ? "found" : "not found", "hidden:", newsSection?.classList.contains('hidden'));
+
   fetchData(); // Première récupération des données
 
   // Gestion du bouton d'authentification (désactivé, sans Firebase)
@@ -968,21 +1003,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Interval de rafraîchissement des données (environ toutes les 25 minutes)
   setInterval(fetchData, 1500000); // 1500000 ms = 25 minutes
-
-  // Définir la section 'crypto' comme active au démarrage
-  // Retirer la classe 'active' de 'home' et l'ajouter à 'crypto'
-  const homeNavLink = document.querySelector('.nav-link[data-section="home"]');
-  const cryptoNavLink = document.querySelector('.nav-link[data-section="crypto"]');
-  const homeSection = document.getElementById('home');
-  const cryptoSection = document.getElementById('crypto');
-  const stocksSection = document.getElementById('stocks');
-  const newsSection = document.getElementById('news');
-
-  if (homeNavLink) homeNavLink.classList.remove('active');
-  if (cryptoNavLink) cryptoNavLink.classList.add('active');
-
-  if (homeSection) homeSection.classList.add('hidden');
-  if (cryptoSection) cryptoSection.classList.remove('hidden');
-  if (stocksSection) stocksSection.classList.add('hidden');
-  if (newsSection) newsSection.classList.add('hidden');
 });

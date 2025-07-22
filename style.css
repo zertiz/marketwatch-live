@@ -29,81 +29,83 @@ body {
   margin: 0;
   padding: 0;
   color: var(--text-color);
-  line-height: 1.6;
-  transition: background-color 0.3s, color 0.3s;
 }
 
+/* Global Container */
+.container {
+  display: flex;
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 0 20px;
+  gap: 20px;
+}
+
+/* Top Bar */
 .top-bar {
   background-color: var(--top-bar-bg);
+  padding: 15px 20px;
   display: flex;
-  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 30px;
-  box-shadow: 0 2px 4px var(--shadow-color);
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  transition: background-color 0.3s, box-shadow 0.3s;
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 2px 5px var(--shadow-color);
+  flex-wrap: wrap; /* Permettre le retour à la ligne sur petits écrans */
 }
 
 .logo {
-  font-size: 24px;
-  font-weight: bold;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1.8em;
+  font-weight: 700;
   color: var(--link-color);
-  margin-bottom: 5px;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
 }
 
 .main-nav {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  margin-top: 5px;
+  gap: 15px;
+  flex-grow: 1; /* Permettre à la navigation de prendre de l'espace */
+  justify-content: center; /* Centrer les liens de navigation */
 }
 
 .main-nav a {
+  color: var(--text-color);
   text-decoration: none;
-  color: var(--header-text);
-  margin: 0 10px;
-  padding: 5px 0;
-  white-space: nowrap;
-  transition: color 0.3s;
+  font-weight: 400;
+  padding: 8px 15px;
+  border-radius: 5px;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+.main-nav a:hover,
 .main-nav a.active {
-  color: var(--link-color);
-  font-weight: bold;
+  background-color: var(--button-bg);
+  color: var(--button-text);
 }
 
 .user-actions {
   display: flex;
   align-items: center;
-  margin-top: 10px;
-  width: 100%;
-  justify-content: center;
+  gap: 10px;
 }
 
 .search-bar {
   padding: 8px 12px;
-  border-radius: 20px;
   border: 1px solid var(--border-color);
-  background-color: var(--header-bg);
+  border-radius: 5px;
+  background-color: #3a3a3a;
   color: var(--text-color);
-  margin-right: 10px;
-  flex-grow: 1;
-  max-width: 300px;
-  transition: background-color 0.3s, border-color 0.3s, color 0.3s;
+  outline: none;
+  width: 180px;
 }
 
 .auth-btn {
   background-color: var(--button-bg);
   color: var(--button-text);
   border: none;
-  padding: 8px 16px;
-  border-radius: 20px;
+  padding: 8px 15px;
+  border-radius: 5px;
   cursor: pointer;
-  white-space: nowrap;
-  transition: background-color 0.3s, color 0.3s;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .auth-btn:hover {
@@ -111,315 +113,310 @@ body {
   color: var(--button-hover-text);
 }
 
-/* Theme Toggle Button (Removed from HTML, so this block is no longer strictly needed but kept for completeness) */
-.theme-toggle-btn {
-  display: none; /* Ensure it's hidden if somehow present */
-}
-
-
-.container {
-  display: flex;
-  padding: 20px;
-  gap: 20px;
-  min-height: calc(100vh - 100px); /* Adjust based on header height */
-}
-
+/* Sidebar */
 .sidebar {
-  width: 250px;
-  min-width: 200px;
-  background: var(--card-bg);
+  flex: 0 0 250px; /* Largeur fixe pour la sidebar */
+  background-color: var(--card-bg);
   padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 0 10px var(--shadow-color);
-  transition: background-color 0.3s, box-shadow 0.3s;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px var(--shadow-color);
+  align-self: flex-start; /* Aligner en haut */
 }
 
-.sidebar h3 {
+.sidebar-section {
+  margin-bottom: 20px;
+}
+
+.sidebar-section h3 {
+  color: var(--header-text);
+  font-size: 1.2em;
+  margin-top: 0;
   margin-bottom: 10px;
-  color: var(--link-color);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 5px;
 }
 
-.sidebar ul {
+.sidebar-section ul {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
-.sidebar li {
-  padding: 8px 0;
-  border-bottom: 1px dashed var(--border-color);
-  font-size: 15px;
-  color: var(--text-color);
-  transition: color 0.3s, border-color 0.3s;
+.sidebar-section li {
+  padding: 5px 0;
+  font-size: 0.95em;
+  border-bottom: 1px dotted rgba(255,255,255,0.1);
 }
 
-.main-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.card {
-  background: var(--card-bg);
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 0 10px var(--shadow-color);
-  transition: background-color 0.3s, box-shadow 0.3s;
-}
-
-h2 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  color: var(--link-color);
-}
-
-.news-item {
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.news-item:last-child {
+.sidebar-section li:last-child {
   border-bottom: none;
 }
 
-table {
+/* Main Content */
+.main-content {
+  flex-grow: 1;
+  display: flex; /* Utiliser flexbox pour gérer les sections */
+  flex-direction: column; /* Les sections s'empilent verticalement */
+  gap: 20px;
+}
+
+.content-section {
+  background-color: var(--card-bg);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px var(--shadow-color);
+  min-height: 200px; /* Minimum height for sections */
+}
+
+.home-section {
+  text-align: center;
+  padding: 50px 20px;
+}
+
+.home-section h1 {
+  color: var(--link-color);
+  font-size: 2.5em;
+  margin-bottom: 15px;
+}
+
+.home-section p {
+  font-size: 1.1em;
+  line-height: 1.6;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Table Styles */
+.market-table h2 {
+  color: var(--header-text);
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 1.5em;
+}
+
+.data-table {
   width: 100%;
   border-collapse: collapse;
+  margin-top: 15px;
 }
 
-th, td {
-  padding: 12px;
-  border-bottom: 1px solid var(--border-color);
+.data-table th,
+.data-table td {
+  padding: 12px 15px;
   text-align: left;
-  cursor: pointer; /* Make headers clickable */
-  color: var(--text-color);
-  font-size: 14px;
-  transition: color 0.3s, border-color 0.3s;
+  border-bottom: 1px solid var(--border-color);
 }
 
-th {
+.data-table th {
   background-color: var(--header-bg);
-  font-weight: bold;
-  font-size: 14px;
   color: var(--header-text);
-  transition: background-color 0.3s, color 0.3s;
-  position: relative; /* For positioning the sort arrow */
+  font-weight: 700;
+  cursor: pointer;
+  position: relative; /* Pour positionner la flèche de tri */
 }
 
-th:hover {
-  background-color: var(--border-color); /* Slightly lighter on hover */
+.data-table th:hover {
+  background-color: #444;
 }
 
-/* Sort arrow */
-.sort-arrow {
+.data-table th .sort-arrow {
   display: inline-block;
+  margin-left: 5px;
   width: 0;
   height: 0;
-  margin-left: 5px;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
   vertical-align: middle;
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  opacity: 0.5;
-  transition: opacity 0.3s;
+  transition: transform 0.2s ease-in-out;
 }
 
-th[data-sort-direction="asc"] .sort-arrow {
-  border-bottom: 4px solid var(--text-color);
+.data-table th[data-sort-direction="asc"] .sort-arrow {
+  border-bottom: 5px solid var(--link-color);
+  transform: rotate(0deg);
 }
 
-th[data-sort-direction="desc"] .sort-arrow {
-  border-top: 4px solid var(--text-color);
+.data-table th[data-sort-direction="desc"] .sort-arrow {
+  border-top: 5px solid var(--link-color);
+  transform: rotate(180deg);
 }
 
-th[data-sort-direction="none"] .sort-arrow {
-  /* No visible arrow by default */
-  opacity: 0;
+.data-table th[data-sort-direction="none"] .sort-arrow {
+  display: none; /* Masquer la flèche si pas de tri actif */
 }
 
-/* Styles for gain/loss indicators */
+
+.data-table td {
+  color: var(--text-color);
+  background-color: var(--card-bg);
+}
+
+.data-table tr:hover {
+  background-color: #333;
+  cursor: pointer;
+}
+
 .gain {
   color: var(--gain-color);
-  font-weight: bold;
+  font-weight: 700;
 }
 
 .loss {
   color: var(--loss-color);
-  font-weight: bold;
+  font-weight: 700;
 }
 
-/* Utilities */
-.hidden {
-  display: none; /* Pas de !important ici, le JS gère l'affichage */
+.error-message {
+  color: var(--error-color);
+  font-weight: 700;
+  text-align: center;
+  padding: 10px;
 }
 
-.content-section {
-  animation: fadeIn 0.4s ease-in;
+/* News Section */
+.market-news {
+  padding: 20px;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-.rss-list {
-  list-style: none;
-  padding-left: 0;
-  margin-bottom: 2rem;
-}
-
-.rss-item {
-  margin-bottom: 0.75rem;
-}
-
-.rss-item a {
-  font-weight: 600;
-  color: var(--link-color);
-  text-decoration: none;
-}
-
-.rss-item a:hover {
-  text-decoration: underline;
-}
-
-.rss-item small {
-  display: block;
+.market-news h2 {
   color: var(--header-text);
-  font-size: 0.85rem;
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 1.5em;
 }
+
+#news-articles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
 .news-card {
+  background-color: #3a3a3a;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
   display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  background: var(--header-bg);
-  border-radius: 10px;
-  padding: 0.75rem;
-  box-shadow: 0 2px 5px var(--shadow-color);
-  transition: background-color 0.3s, box-shadow 0.3s;
+  flex-direction: column;
 }
 
 .news-thumb {
-  width: 120px;
-  height: 80px;
-  object-fit: cover;
-  border-radius: 6px;
+  width: 100%;
+  height: 180px; /* Fixed height for images */
+  object-fit: cover; /* Cover the area, cropping if necessary */
+}
+
+.news-content {
+  padding: 15px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .news-content h4 {
-  margin: 0;
-  font-size: 1rem;
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 1.1em;
+  line-height: 1.4;
 }
 
 .news-content h4 a {
-  text-decoration: none;
   color: var(--link-color);
+  text-decoration: none;
+  transition: color 0.3s ease;
 }
 
 .news-content h4 a:hover {
-  text-decoration: underline;
+  color: #88e0ff;
 }
 
 .news-date {
-  font-size: 0.85rem;
-  color: var(--header-text);
-  margin-top: 4px;
+  font-size: 0.85em;
+  color: #b0b0b0;
+  margin-top: auto; /* Push date to the bottom */
 }
 
 .news-source {
-  margin-top: 2rem;
-  font-size: 1.2rem;
-  color: var(--link-color);
-  border-left: 4px solid var(--link-color);
-  padding-left: 10px;
+  color: var(--header-text);
+  font-size: 1.3em;
+  margin-top: 20px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 5px;
 }
 
-/* Styles pour le modal du graphique */
+
+/* Modal Styles */
 .modal {
-  display: none; /* Pas de !important ici, le JS gère l'affichage */
   position: fixed;
-  z-index: 2000;
+  z-index: 1000;
   left: 0;
   top: 0;
   width: 100%;
   height: 100%;
-  overflow: auto;
   background-color: var(--modal-bg);
+  display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .modal-content {
   background-color: var(--modal-content-bg);
-  margin: auto;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 5px 15px var(--shadow-color);
+  padding: 25px;
+  border-radius: 10px;
   width: 90%;
   max-width: 800px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.5);
   position: relative;
-  animation: fadeIn 0.3s ease-out;
-  color: var(--text-color);
-  transition: background-color 0.3s, color 0.3s, box-shadow 0.3s;
+  max-height: 90vh; /* Limiter la hauteur du contenu du modal */
+  overflow-y: auto; /* Permettre le défilement si le contenu est trop grand */
 }
 
 .close-button {
   color: var(--close-button-color);
-  float: right;
   font-size: 28px;
   font-weight: bold;
-  cursor: pointer;
   position: absolute;
   top: 10px;
-  right: 20px;
-  transition: color 0.3s;
+  right: 15px;
+  cursor: pointer;
+  transition: color 0.3s ease;
 }
 
 .close-button:hover,
 .close-button:focus {
   color: var(--close-button-hover-color);
   text-decoration: none;
+  cursor: pointer;
+}
+
+.modal-content h2 {
+  color: var(--link-color);
+  margin-top: 0;
+  margin-bottom: 20px;
+  text-align: center;
 }
 
 .chart-container {
   position: relative;
-  height: 400px;
+  height: 400px; /* Hauteur fixe pour le graphique */
   width: 100%;
-  margin-top: 20px;
 }
 
-.loading-message, .error-message {
-  text-align: center;
-  font-style: italic;
-  color: var(--header-text);
-  margin-top: 10px;
-}
-
-.error-message {
-  color: var(--error-color);
-  font-weight: bold;
-}
-
-/* Styles for chart period selectors */
 .chart-period-selector {
-  text-align: center;
-  margin-bottom: 15px;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  gap: 10px;
 }
 
 .chart-period-selector button {
-  background-color: var(--header-bg);
-  color: var(--link-color);
-  border: 1px solid var(--border-color);
+  background-color: var(--button-bg);
+  color: var(--button-text);
+  border: none;
   padding: 8px 15px;
-  margin: 0 5px;
-  border-radius: 8px;
+  border-radius: 5px;
   cursor: pointer;
-  transition: background-color 0.2s, color 0.2s, border-color 0.3s;
-  font-size: 0.9em;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .chart-period-selector button:hover {
@@ -427,53 +424,49 @@ th[data-sort-direction="none"] .sort-arrow {
   color: var(--button-hover-text);
 }
 
-.chart-period-selector button.active {
-  background-color: var(--link-color);
-  color: var(--button-text);
-  font-weight: bold;
+/* Utility classes */
+.hidden {
+  display: none !important; /* Force hide */
 }
 
+/* Responsive Design */
 
-/* --- Media Queries for Responsive Design --- */
-
-/* For screens less than 1024px (tablets and small laptops) */
+/* For screens less than 1024px (tablets and smaller desktops) */
 @media (max-width: 1024px) {
-  .top-bar {
-    padding: 10px 20px;
-  }
-
-  .main-nav a {
-    margin: 0 8px;
-    font-size: 0.95em;
-  }
-
   .container {
     flex-direction: column;
-    padding: 15px;
+    padding: 0 15px;
   }
 
   .sidebar {
+    flex: none; /* Remove fixed width */
     width: 100%;
     margin-bottom: 20px;
   }
 
-  .main-content {
-    width: 100%;
+  .main-nav {
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
   }
 
-  th, td {
-    padding: 10px;
-    font-size: 13px;
+  .user-actions {
+    margin-top: 10px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .search-bar {
+    width: calc(100% - 100px); /* Adjust width for button */
   }
 
   .news-card {
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    text-align: center;
   }
 
   .news-thumb {
-    width: 100%;
+    width: 150px;
     height: auto;
     max-height: 150px;
     margin-bottom: 10px;
@@ -539,43 +532,32 @@ th[data-sort-direction="none"] .sort-arrow {
     padding: 15px;
   }
 
-  h2 {
-    font-size: 1.5em;
+  .data-table th,
+  .data-table td {
+    padding: 8px 10px;
+    font-size: 0.85em;
   }
 
-  th, td {
-    padding: 8px;
-    font-size: 12px;
+  .news-card {
+    flex-direction: column;
   }
 
-  /* "Cap." and "Advice" columns are hidden on very small screens */
-  table thead th:nth-child(4),
-  table tbody td:nth-child(4),
-  table thead th:nth-child(5),
-  table tbody td:nth-child(5) {
-    display: none;
+  .news-thumb {
+    width: 100%;
+    height: 150px;
+    margin-bottom: 10px;
+  }
+
+  .news-content {
+    padding: 10px;
+  }
+
+  .modal-content {
+    width: 95%;
+    padding: 15px;
   }
 
   .chart-container {
     height: 250px;
-  }
-
-  .chart-period-selector button {
-    padding: 6px 10px;
-    font-size: 0.8em;
-    margin: 0 3px;
-  }
-}
-
-/* For very small screens (less than 480px) */
-@media (max-width: 480px) {
-  .main-nav a {
-    font-size: 0.8em;
-    margin: 0 3px;
-  }
-
-  th, td {
-    padding: 6px;
-    font-size: 11px;
   }
 }
