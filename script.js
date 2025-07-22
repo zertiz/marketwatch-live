@@ -1074,7 +1074,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
 
-  // Interval de rafraîchissement des données (environ toutes les 25 minutes)
-  setInterval(fetchData, 1500000); // 1500000 ms = 25 minutes
-  console.log("[INIT] Data refresh interval set.");
+  // Interval de rafraîchissement des données (maintenant toutes les 4 heures)
+  setInterval(fetchData, 14400000); // 14400000 ms = 4 heures
+  console.log("[INIT] Data refresh interval set to 4 hours.");
 });
