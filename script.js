@@ -96,10 +96,11 @@ async function initializeFirebase() {
 async function fetchData() {
   const apiKey = '8C6eqw9VAcDUFxs1UERgRgY64pNe9xYd'; // Votre clé API FMP
   const cryptoUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana,cardano,ripple,dogecoin,tron,polkadot,polygon,chainlink';
-  const stockUrl = `https://financialmodelingprep.com/api/v3/quote/AAPL,NVDA,MSFT,TSLA,AMZN,META,GOOG,JPM,BAC,V?apikey=${apiKey}`;
-  const forexUrl = `https://financialmodelingprep.com/api/v3/quote/EURUSD,USDJPY,GBPUSD,AUDUSD,USDCAD,USDCHF,USDCNY,USDHKD,USDSEK,USDSGD?apikey=${apiKey}`;
-  const indicesUrl = `https://financialmodelingprep.com/api/v3/quote/%5EDJI,%5EIXIC,%5EGSPC,%5EFCHI,%5EGDAXI,%5EFTSE,%5EN225,%5EHSI,%5ESSMI,%5EBVSP?apikey=${apiKey}`;
-  const commoditiesUrl = `https://financialmodelingprep.com/api/v3/quote/GCUSD,SIUSD,CLUSD,NGUSD,HGUSD,ALIUSD,PAUSD,PLUSD,KCUSD,SBUSD?apikey=${apiKey}`;
+  // REDUCTION DES SYMBOLES FMP POUR ÉVITER LE 429
+  const stockUrl = `https://financialmodelingprep.com/api/v3/quote/AAPL,MSFT?apikey=${apiKey}`; // Réduit à 2 actions
+  const forexUrl = `https://financialmodelingprep.com/api/v3/quote/EURUSD?apikey=${apiKey}`; // Réduit à 1 paire
+  const indicesUrl = `https://financialmodelingprep.com/api/v3/quote/%5EDJI?apikey=${apiKey}`; // Réduit à 1 indice
+  const commoditiesUrl = `https://financialmodelingprep.com/api/v3/quote/GCUSD?apikey=${apiKey}`; // Réduit à 1 matière première
 
   // Display loading messages for main tables
   document.getElementById('stock-list').innerHTML = '<tr><td colspan="5">Chargement des données boursières...</td></tr>';
@@ -176,6 +177,8 @@ async function fetchData() {
             errorMessage += ` Statut: ${result.reason.status}`;
             if (result.reason.status === 403) {
                 errorMessage += " (Clé API invalide ou limites dépassées)";
+            } else if (result.reason.status === 429) { // Specific message for 429
+                errorMessage += " (Trop de requêtes - Limite API dépassée)";
             }
         } else if (result.reason instanceof Error) {
             errorMessage += ` Message: ${result.reason.message}`;
@@ -238,14 +241,14 @@ async function fetchNews() {
     let html = '';
 
     for (const feed of feeds) {
-      // Use a proxy to bypass CORS issues
-      const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(feed.url);
+      // NOUVEAU PROXY CORS
+      const proxyUrl = 'https://cors-anywhere.herokuapp.com/' + encodeURIComponent(feed.url);
       const res = await fetch(proxyUrl);
-      const data = await res.json();
+      const data = await res.text(); // Utilisez .text() car cors-anywhere renvoie directement le contenu
 
       const parser = new DOMParser();
       // Parse XML content from RSS feed
-      const xml = parser.parseFromString(data.contents, 'text/xml');
+      const xml = parser.parseFromString(data, 'text/xml'); // Utilisez 'data' ici
       const items = xml.querySelectorAll('item');
 
       html += `<h3 class="news-source">${feed.label}</h3>`;
