@@ -10,7 +10,7 @@ let allFetchedData = {
   indices: [],
   commodities: []
 };
-let lastActiveSection = 'home'; // Sera mis à jour pour 'crypto' dans DOMContentLoaded
+let lastActiveSection = 'home'; // Sera mis à jour par la simulation de clic
 let myChart; // Pour stocker l'instance du graphique Chart.js
 let currentChartSymbol = '';
 let currentChartType = '';
@@ -94,6 +94,7 @@ async function initializeFirebase() {
 // --- Fonctions de Récupération et Mise à Jour des Données ---
 
 async function fetchData() {
+  console.log("[DEBUG] fetchData called.");
   const apiKey = '8C6eqw9VAcDUFxs1UERgRgY64pNe9xYd'; // Votre clé API FMP
   const cryptoUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana,cardano,ripple,dogecoin,tron,polkadot,polygon,chainlink';
   
@@ -249,6 +250,7 @@ async function fetchData() {
 }
 
 async function fetchNews() {
+  console.log("[DEBUG] fetchNews called.");
   const newsContainer = document.getElementById('news-articles');
   if (!newsContainer) {
     console.error("[ERROR] fetchNews - Élément 'news-articles' non trouvé.");
@@ -327,6 +329,7 @@ async function fetchNews() {
  * @returns {Array} The sorted array.
  */
 function sortData(data, key, direction) {
+  console.log(`[DEBUG] sortData called for key: ${key}, direction: ${direction}`);
   if (!data || data.length === 0) return [];
 
   const sorted = [...data].sort((a, b) => {
@@ -487,8 +490,12 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
 
 // Function to update the indices list in the sidebar
 function updateIndices(data) {
+  console.log("[DEBUG] updateIndices called.");
   const list = document.getElementById('indices-list');
-  if (!list) return;
+  if (!list) {
+    console.error("[ERROR] updateIndices - Élément 'indices-list' non trouvé.");
+    return;
+  }
 
   console.log("[DEBUG] updateIndices - Données reçues:", data);
 
@@ -519,8 +526,12 @@ function updateIndices(data) {
 
 // Nouvelle fonction pour mettre à jour la liste des matières premières
 function updateCommodities(data) {
+    console.log("[DEBUG] updateCommodities called.");
     const list = document.getElementById('commodities-list');
-    if (!list) return;
+    if (!list) {
+      console.error("[ERROR] updateCommodities - Élément 'commodities-list' non trouvé.");
+      return;
+    }
 
     console.log("[DEBUG] updateCommodities - Données reçues:", data);
 
@@ -551,8 +562,12 @@ function updateCommodities(data) {
 
 // Fonction pour mettre à jour les recommandations (inclut maintenant les messages d'erreur FMP)
 function updateRecommendations(stocks, cryptos, forex, indices, commodities) {
+  console.log("[DEBUG] updateRecommendations called.");
   const recList = document.getElementById('recommendations');
-  if (!recList) return;
+  if (!recList) {
+    console.error("[ERROR] updateRecommendations - Élément 'recommendations' non trouvé.");
+    return;
+  }
 
   let recommendationHtml = '';
 
@@ -670,70 +685,73 @@ function performSearch(query) {
 function handleNavigation() {
   console.log("[DEBUG] handleNavigation function called.");
   document.querySelectorAll('.nav-link').forEach(link => {
-    console.log(`[DEBUG] Attaching click listener to nav-link: ${link.dataset.section}`);
-    link.addEventListener('click', (e) => {
-      e.preventDefault();
-      const section = link.dataset.section;
-      console.log(`[DEBUG] Nav-link clicked: ${section}`);
+    if (link) { // Ensure the link element exists
+      console.log(`[DEBUG] Attaching click listener to nav-link: ${link.dataset.section}`);
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const section = link.dataset.section;
+        console.log(`[DEBUG] Nav-link clicked: ${section}`);
 
-      lastActiveSection = section;
-      console.log("[DEBUG] lastActiveSection set to:", lastActiveSection);
+        lastActiveSection = section;
+        console.log("[DEBUG] lastActiveSection set to:", lastActiveSection);
 
-      document.querySelectorAll('.nav-link').forEach(l => {
-        l.classList.remove('active');
-        console.log(`  Removed active from: ${l.dataset.section}`);
+        document.querySelectorAll('.nav-link').forEach(l => {
+          l.classList.remove('active');
+          console.log(`  Removed active from: ${l.dataset.section}`);
+        });
+        link.classList.add('active');
+        console.log(`  Added active to: ${link.dataset.section}`);
+
+        document.querySelectorAll('.content-section').forEach(sec => {
+          sec.classList.add('hidden');
+          console.log(`  Hid section: ${sec.id}`);
+        });
+        const activeSection = document.getElementById(section);
+        if (activeSection) {
+          activeSection.classList.remove('hidden');
+          console.log(`  Showed section: ${activeSection.id}`);
+        } else {
+          console.error(`[ERROR] Section element not found for: ${section}`);
+        }
+
+        // Assurez-vous que les données passées sont des tableaux ou des objets d'erreur
+        const stocksToUpdate = Array.isArray(allFetchedData.stocks) ? allFetchedData.stocks : [];
+        const cryptosToUpdate = Array.isArray(allFetchedData.cryptos) ? allFetchedData.cryptos : [];
+        const forexToUpdate = Array.isArray(allFetchedData.forex) ? allFetchedData.forex : [];
+        const indicesToUpdate = Array.isArray(allFetchedData.indices) ? allFetchedData.indices : [];
+        const commoditiesToUpdate = Array.isArray(allFetchedData.commodities) ? allFetchedData.commodities : [];
+
+        if (section === 'stocks') {
+          updateLists(stocksToUpdate, [], forexToUpdate, indicesToUpdate, commoditiesToUpdate);
+        } else if (section === 'crypto') {
+          updateLists([], cryptosToUpdate, [], [], []);
+        } else if (section === 'news') {
+          fetchNews();
+        } else if (section === 'home') {
+          // Home section does not display tables directly, ensure others are hidden
+          document.getElementById('stocks')?.classList.add('hidden');
+          document.getElementById('crypto')?.classList.add('hidden');
+          document.getElementById('news')?.classList.add('hidden');
+        }
+        const searchBar = document.querySelector('.search-bar');
+        if (searchBar) searchBar.value = '';
       });
-      link.classList.add('active');
-      console.log(`  Added active to: ${link.dataset.section}`);
-
-      document.querySelectorAll('.content-section').forEach(sec => {
-        sec.classList.add('hidden');
-        console.log(`  Hid section: ${sec.id}`);
-      });
-      const activeSection = document.getElementById(section);
-      if (activeSection) {
-        activeSection.classList.remove('hidden');
-        console.log(`  Showed section: ${activeSection.id}`);
-      } else {
-        console.error(`[ERROR] Section element not found for: ${section}`);
-      }
-
-      // Assurez-vous que les données passées sont des tableaux ou des objets d'erreur
-      const stocksToUpdate = Array.isArray(allFetchedData.stocks) ? allFetchedData.stocks : [];
-      const cryptosToUpdate = Array.isArray(allFetchedData.cryptos) ? allFetchedData.cryptos : [];
-      const forexToUpdate = Array.isArray(allFetchedData.forex) ? allFetchedData.forex : [];
-      const indicesToUpdate = Array.isArray(allFetchedData.indices) ? allFetchedData.indices : [];
-      const commoditiesToUpdate = Array.isArray(allFetchedData.commodities) ? allFetchedData.commodities : [];
-
-      if (section === 'stocks') {
-        updateLists(stocksToUpdate, [], forexToUpdate, indicesToUpdate, commoditiesToUpdate);
-      } else if (section === 'crypto') {
-        updateLists([], cryptosToUpdate, [], [], []);
-      } else if (section === 'news') {
-        fetchNews();
-      } else if (section === 'home') {
-        // Home section does not display tables directly, ensure others are hidden
-        document.getElementById('stocks')?.classList.add('hidden');
-        document.getElementById('crypto')?.classList.add('hidden');
-        document.getElementById('news')?.classList.add('hidden');
-      }
-      document.querySelector('.search-bar').value = '';
-    });
+    }
   });
 }
 
 // Fonction pour afficher le modal du graphique
 window.showChartModal = async function(symbol, type, name) { // Rendu global, 'period' retiré
+  console.log(`[DEBUG] showChartModal called for symbol: ${symbol}, type: ${type}, name: ${name}`);
   const modal = document.getElementById('chartModal');
   const chartTitle = document.getElementById('chartTitle');
-  const chartLoading = document.getElementById('chartLoading'); // Assurez-vous d'avoir un élément avec cet ID
   const chartError = document.getElementById('chartError');
   const chartCanvas = document.getElementById('historicalChart');
   const ctx = chartCanvas?.getContext('2d'); // Utiliser optional chaining
   const chartPeriodSelector = document.getElementById('chartPeriodSelector'); // Référence au sélecteur de période
 
   if (!modal || !chartTitle || !chartError || !chartCanvas || !ctx) {
-    console.error("[ERROR] showChartModal - Un ou plusieurs éléments du DOM du modal sont manquants.");
+    console.error("[ERROR] showChartModal - Un ou plusieurs éléments du DOM du modal sont manquants. Impossible d'afficher le graphique.");
     return;
   }
 
@@ -743,8 +761,7 @@ window.showChartModal = async function(symbol, type, name) { // Rendu global, 'p
   currentChartName = name;
 
   chartTitle.textContent = `Évolution du prix pour ${name} (USD)`;
-  // chartLoading.classList.remove('hidden'); // Uncomment if you add a loading spinner
-  chartError.classList.add('hidden');
+  chartError.classList.add('hidden'); // Masquer les erreurs précédentes
   modal.classList.remove('hidden'); // Assurez-vous que le modal est visible
 
   // Masquer le sélecteur de période car nous n'en avons plus besoin
@@ -756,6 +773,7 @@ window.showChartModal = async function(symbol, type, name) { // Rendu global, 'p
   // Destroy old chart if it exists
   if (myChart) {
     myChart.destroy();
+    console.log("[DEBUG] Old chart destroyed.");
   }
 
   try {
@@ -764,15 +782,14 @@ window.showChartModal = async function(symbol, type, name) { // Rendu global, 'p
 
     if (historicalData && historicalData.length > 0) {
       renderChart(historicalData, name, ctx, currentCurrency);
-      // if (chartLoading) chartLoading.classList.add('hidden'); // Uncomment if you add a loading spinner
+      console.log("[DEBUG] Chart rendered successfully.");
     } else {
-      // if (chartLoading) chartLoading.classList.add('hidden'); // Uncomment if you add a loading spinner
       chartError.classList.remove('hidden');
       chartError.textContent = "Aucune donnée historique disponible pour cet actif ou erreur API.";
+      console.warn("[WARN] No historical data or empty data array received.");
     }
   } catch (error) {
     console.error("Erreur de chargement des données historiques:", error);
-    // if (chartLoading) chartLoading.classList.add('hidden'); // Uncomment if you add a loading spinner
     chartError.classList.remove('hidden');
     chartError.textContent = "Erreur lors du chargement des données historiques. Veuillez réessayer plus tard.";
   }
@@ -780,12 +797,15 @@ window.showChartModal = async function(symbol, type, name) { // Rendu global, 'p
 
 // Fonction pour fermer le modal du graphique
 function closeChartModal() {
+  console.log("[DEBUG] closeChartModal called.");
   const modal = document.getElementById('chartModal');
   if (modal) {
     modal.classList.add('hidden');
+    console.log("[DEBUG] Chart modal hidden.");
   }
   if (myChart) {
     myChart.destroy(); // Détruire le graphique pour libérer les ressources
+    console.log("[DEBUG] Chart destroyed on close.");
   }
   // Clear period selector buttons (already hidden, but good practice)
   const chartPeriodSelector = document.getElementById('chartPeriodSelector');
@@ -794,6 +814,7 @@ function closeChartModal() {
 
 // Function to fetch historical data (period fixed to 1 year)
 async function fetchHistoricalData(symbol, type) { // 'period' parameter removed
+  console.log(`[DEBUG] fetchHistoricalData called for symbol: ${symbol}, type: ${type}`);
   const apiKey = '8C6eqw9VAcDUFxs1UERgRgY64pNe9xYd'; // Your FMP API key
   let url = '';
   let dataPath = '';
@@ -853,6 +874,7 @@ async function fetchHistoricalData(symbol, type) { // 'period' parameter removed
 
 // Fonction pour rendre le graphique avec Chart.js
 function renderChart(historicalData, assetName, ctx, currencyCode) {
+  console.log("[DEBUG] renderChart called.");
   const labels = historicalData.map(data => data.date);
   const prices = historicalData.map(data => data.price);
 
@@ -931,47 +953,32 @@ function renderChart(historicalData, assetName, ctx, currencyCode) {
 
 // --- Initialisation au chargement du DOM ---
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("[INIT] DOMContentLoaded event fired.");
+  console.log("[INIT] DOMContentLoaded event fired. Starting initialization sequence.");
   
-  handleNavigation(); // Initialise la navigation et la visibilité des sections
+  // 1. Attacher les écouteurs de navigation en premier
+  handleNavigation(); 
 
-  // Masquer toutes les sections de contenu au départ
+  // 2. Masquer toutes les sections de contenu
   document.querySelectorAll('.content-section').forEach(sec => {
     sec.classList.add('hidden');
     console.log(`[INIT] Section cachée: ${sec.id}, hidden: ${sec.classList.contains('hidden')}`);
   });
 
-  // Définir la section 'crypto' comme active au démarrage
+  // 3. Simuler un clic sur le lien de navigation 'Crypto' pour initialiser l'affichage
   const cryptoNavLink = document.querySelector('.nav-link[data-section="crypto"]');
-  const cryptoSection = document.getElementById('crypto');
-  
-  // Retirer la classe 'active' de tous les liens de navigation
-  document.querySelectorAll('.nav-link').forEach(link => {
-    link.classList.remove('active');
-    console.log(`[INIT] Removed 'active' from nav-link: ${link.dataset.section}`);
-  });
-
-  // Ajouter la classe 'active' au lien de navigation 'crypto'
   if (cryptoNavLink) {
-    cryptoNavLink.classList.add('active');
-    console.log(`[INIT] Added 'active' to crypto nav link. Active: ${cryptoNavLink.classList.contains('active')}`);
+    console.log("[INIT] Simulating click on 'Crypto' nav link to set initial active section.");
+    cryptoNavLink.click(); // Simule un clic pour déclencher handleNavigation
   } else {
-    console.error("[INIT] Crypto nav link element not found!");
+    console.error("[INIT] Crypto nav link element not found! Cannot set initial active section.");
+    // Fallback: if crypto link not found, try to show home
+    const homeNavLink = document.querySelector('.nav-link[data-section="home"]');
+    if (homeNavLink) homeNavLink.click();
+    else console.error("[INIT] Home nav link also not found. UI might not initialize correctly.");
   }
 
-  // Afficher la section 'crypto'
-  if (cryptoSection) {
-    cryptoSection.classList.remove('hidden');
-    console.log(`[INIT] Showing crypto section. Hidden: ${cryptoSection.classList.contains('hidden')}`);
-  } else {
-    console.error("[INIT] Crypto section element not found!");
-  }
-
-  // Définir lastActiveSection à 'crypto' pour la fonctionnalité de recherche
-  lastActiveSection = 'crypto';
-  console.log("[INIT] lastActiveSection set to:", lastActiveSection);
-
-  fetchData(); // Première récupération des données
+  // 4. Lancer la récupération des données
+  fetchData(); 
 
   // Gestion du bouton d'authentification (désactivé, sans Firebase)
   const authButton = document.getElementById('authButton');

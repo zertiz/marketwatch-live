@@ -6,6 +6,8 @@
   <title>MarketWatch Live</title>
   <link rel="stylesheet" href="style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Montserrat:wght@400;700&display=swap" rel="stylesheet" />
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <header class="top-bar">
@@ -37,7 +39,7 @@
         </ul>
       </div>
       <div class="sidebar-section">
-        <h3>Recommandations 💡</h3>
+        <h3>Recommandations 🤔</h3>
         <ul id="recommendations">
           <li>Chargement...</li>
         </ul>
@@ -47,18 +49,22 @@
     <main class="main-content">
       <section id="home" class="home-section content-section">
         <h1>Bienvenue sur MarketWatch Live !</h1>
-        <p>Votre portail pour suivre les marchés financiers en temps réel. Naviguez à travers les sections pour découvrir les dernières données sur les actions, les cryptomonnaies, le forex, les indices et les matières premières, ainsi que les actualités financières.</p>
-        <p>Utilisez la barre de recherche pour trouver rapidement un actif spécifique.</p>
+        <p>
+          Votre portail pour suivre les marchés financiers en temps réel. Naviguez à travers les sections pour
+          découvrir les dernières données sur les actions, les cryptomonnaies, le forex, les indices et les
+          matières premières, ainsi que les actualités financières.
+          Utilisez la barre de recherche pour trouver rapidement un actif spécifique.
+        </p>
       </section>
 
-      <section id="stocks" class="market-table card content-section hidden">
-        <h2>Marché Boursier & Forex 📊</h2>
+      <section id="stocks" class="market-table content-section hidden">
+        <h2>Actions, Forex, Indices & Matières Premières 📊</h2>
         <table class="data-table">
           <thead>
             <tr>
               <th data-sort-key="name" data-sort-direction="asc">Nom <span class="sort-arrow"></span></th>
               <th data-sort-key="price" data-sort-direction="asc">Prix <span class="sort-arrow"></span></th>
-              <th data-sort-key="changesPercentage" data-sort-direction="asc">Change % <span class="sort-arrow"></span></th>
+              <th data-sort-key="changesPercentage" data-sort-direction="asc">24h % <span class="sort-arrow"></span></th>
               <th data-sort-key="marketCap" data-sort-direction="asc">Cap. <span class="sort-arrow"></span></th>
               <th>Conseil</th>
             </tr>
@@ -69,7 +75,7 @@
         </table>
       </section>
 
-      <section id="crypto" class="market-table card content-section hidden">
+      <section id="crypto" class="market-table content-section hidden">
         <h2>Cryptomonnaies ₿</h2>
         <table class="data-table">
           <thead>
@@ -108,5 +114,12 @@
         <!-- Les boutons seront générés par JavaScript si besoin, mais ici ils sont masqués -->
       </div>
 
+      <div class="chart-container">
+        <canvas id="historicalChart"></canvas>
+      </div>
+    </div>
+  </div>
 
-
+  <script src="script.js"></script>
+</body>
+</html>
