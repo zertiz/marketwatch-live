@@ -293,7 +293,7 @@ async function fetchNews() {
 
       data.items.forEach((item, index) => {
         // Limit to 4 articles per feed to avoid overload
-        if (index >= 5) return;
+        if (index >= 4) return;
 
         const title = item.title ?? '';
         const link = item.link ?? '';
@@ -885,11 +885,13 @@ function renderChart(historicalData, assetName, ctx, currencyCode) {
       datasets: [{
         label: `Prix de ${assetName} (${currencyCode})`,
         data: prices,
-        borderColor: '#61dafb', // Couleur du graphique bleu clair
-        backgroundColor: 'rgba(97, 218, 251, 0.1)', // Fond du graphique transparent
+        borderColor: '#FFFFFF', // Couleur de la ligne du graphique en blanc
+        backgroundColor: 'rgba(255, 255, 255, 0.2)', // Fond du graphique en blanc transparent (légèrement plus opaque)
         tension: 0.2, // Légère courbure pour un aspect plus doux
         fill: true,
-        pointRadius: 0 // Cacher les points individuels
+        pointRadius: 0, // Cacher les points individuels
+        pointBackgroundColor: '#FFFFFF', // Couleur des points en blanc (même si cachés)
+        pointBorderColor: '#FFFFFF' // Couleur de la bordure des points en blanc (même si cachés)
       }]
     },
     options: {
@@ -900,29 +902,29 @@ function renderChart(historicalData, assetName, ctx, currencyCode) {
           title: {
             display: true,
             text: 'Date',
-            color: '#e0e0e0'
+            color: '#e0e0e0' // Couleur du texte des titres d'axe
           },
           ticks: {
-            color: '#b0b0b0'
+            color: '#b0b0b0' // Couleur du texte des étiquettes des ticks
           },
           grid: {
-            color: '#3a3a3a'
+            color: '#3a3a3a' // Couleur des lignes de grille
           }
         },
         y: {
           title: {
             display: true,
             text: `Prix (${currencyCode})`,
-            color: '#e0e0e0'
+            color: '#e0e0e0' // Couleur du texte des titres d'axe
           },
           ticks: {
-            color: '#b0b0b0',
+            color: '#b0b0b0', // Couleur du texte des étiquettes des ticks
             callback: function(value) {
                 return formatPrice(value, currentCurrency);
             }
           },
           grid: {
-            color: '#3a3a3a'
+            color: '#3a3a3a' // Couleur des lignes de grille
           }
         }
       },
@@ -943,7 +945,7 @@ function renderChart(historicalData, assetName, ctx, currencyCode) {
         },
         legend: {
             labels: {
-                color: '#e0e0e0'
+                color: '#e0e0e0' // Couleur du texte de la légende
             }
         }
       }
