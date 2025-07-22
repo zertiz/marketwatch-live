@@ -1,8 +1,8 @@
-// Importations Firebase
-// Les imports Firebase sont toujours présents mais ne sont plus utilisés dans la logique actuelle de l'app si la watchlist est retirée.
-// Ils sont conservés pour la structure si une réintégration future est envisagée.
+// Firebase Imports
+// Firebase imports are still present but are no longer used in the current app logic if the watchlist is removed.
+// They are kept for structure if future reintegration is planned.
 
-// --- Variables Globales ---
+// --- Global Variables ---
 let allFetchedData = {
   stocks: [],
   cryptos: [],
@@ -10,43 +10,43 @@ let allFetchedData = {
   indices: [],
   commodities: []
 };
-let lastActiveSection = 'home'; // Sera mis à jour par la simulation de clic
-let myChart; // Pour stocker l'instance du graphique Chart.js
+let lastActiveSection = 'home'; // Will be updated by simulated click
+let myChart; // To store the Chart.js instance
 let currentChartSymbol = '';
 let currentChartType = '';
 let currentChartName = '';
-let currentCurrency = 'USD'; // Devise par défaut, fixée à USD
+let currentCurrency = 'USD'; // Default currency, fixed to USD
 
-// Firebase variables (conservées pour la structure, mais non utilisées si watchlist retirée)
+// Firebase variables (kept for structure, but not used if watchlist removed)
 let app;
 let db;
 let auth;
 let userId = null;
 let userWatchlist = new Set();
 
-// --- Fonctions Utilitaires ---
+// --- Utility Functions ---
 
-// Fonction pour obtenir le symbole de la devise (simplifiée pour USD)
+// Function to get the currency symbol (simplified for USD)
 function getCurrencySymbol(currencyCode) {
-    return '$'; // Toujours USD
+    return '$'; // Always USD
 }
 
-// Fonction pour formater un prix (simplifiée pour USD)
+// Function to format a price (simplified for USD)
 function formatPrice(price, currencyCode) {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
 }
 
-// --- Initialisation Firebase (conservée mais désactivée si non nécessaire) ---
-// Ces variables sont fournies par l'environnement Canvas
-// Assurez-vous que __firebase_config est un objet JSON valide et non la chaîne "null"
+// --- Firebase Initialization (kept but disabled if not needed) ---
+// These variables are provided by the Canvas environment
+// Ensure __firebase_config is a valid JSON object and not the string "null"
 const firebaseConfig = (typeof __firebase_config !== 'undefined' && __firebase_config && __firebase_config !== 'null') ? JSON.parse(__firebase_config) : null;
-const initialAuthToken = (typeof __initial_auth_token !== 'undefined' && __initial_auth_token && __initial_auth_token !== 'null') ? __initial_auth_token : null;
+const initialAuthToken = (typeof __initial_auth_token !== 'undefined' && __initial_auth_token && __initial_auth_token !== 'null') ? initialAuthToken : null;
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
 
 async function initializeFirebase() {
-  // Cette fonction n'est plus appelée dans DOMContentLoaded si la watchlist est retirée.
-  // Elle est conservée pour la structure si une réintégration future est envisagée.
+  // This function is no longer called in DOMContentLoaded if the watchlist is removed.
+  // It is kept for structure if future reintegration is planned.
   if (!firebaseConfig || Object.keys(firebaseConfig).length === 0) {
     const errorMsg = "Firebase config is missing or empty. Cannot initialize Firebase. Ensure __firebase_config is set in your environment.";
     console.error(errorMsg);
@@ -91,15 +91,14 @@ async function initializeFirebase() {
   }
 }
 
-// --- Fonctions de Récupération et Mise à Jour des Données ---
+// --- Data Fetching and Updating Functions ---
 
 async function fetchData() {
   console.log("[DEBUG] fetchData called.");
-  const apiKey = '8C6eqw9VAcDUFxs1UERgRgY64pNe9xYd'; // Votre clé API FMP
+  const apiKey = '8C6eqw9VAcDUFxs1UERgRgY64pNe9xYd'; // Your FMP API key
   const cryptoUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana,cardano,ripple,dogecoin,tron,polkadot,polygon,chainlink';
   
-  // URLs FMP avec un seul symbole pour minimiser les requêtes et tester le 429
-  // Si même avec un seul symbole ça bloque, c'est une limitation sévère du plan gratuit.
+  // FMP URLs - ALL ENABLED as requested
   const stockUrl = `https://financialmodelingprep.com/api/v3/quote/AAPL?apikey=${apiKey}`; 
   const forexUrl = `https://financialmodelingprep.com/api/v3/quote/EURUSD?apikey=${apiKey}`; 
   const indicesUrl = `https://financialmodelingprep.com/api/v3/quote/%5EDJI?apikey=${apiKey}`; 
@@ -112,14 +111,14 @@ async function fetchData() {
   const commoditiesList = document.getElementById('commodities-list');
   const recommendationsList = document.getElementById('recommendations');
 
-  if (stockListTableBody) stockListTableBody.innerHTML = '<tr><td colspan="5">Chargement des données boursières...</td></tr>';
-  if (cryptoListTableBody) cryptoListTableBody.innerHTML = '<tr><td colspan="5">Chargement des données crypto...</td></tr>';
-  if (indicesList) indicesList.innerHTML = '<li>Chargement des indices du marché...</li>';
-  if (commoditiesList) commoditiesList.innerHTML = '<li>Chargement des matières premières...</li>';
-  if (recommendationsList) recommendationsList.innerHTML = '<li>Chargement des recommandations...</li>';
+  if (stockListTableBody) stockListTableBody.innerHTML = '<tr><td colspan="5">Loading stock data...</td></tr>';
+  if (cryptoListTableBody) cryptoListTableBody.innerHTML = '<tr><td colspan="5">Loading crypto data...</td></tr>';
+  if (indicesList) indicesList.innerHTML = '<li>Loading market indices...</li>';
+  if (commoditiesList) commoditiesList.innerHTML = '<li>Loading commodities...</li>';
+  if (recommendationsList) recommendationsList.innerHTML = '<li>Loading recommendations...</li>';
 
 
-  // Array to hold all fetch promises
+  // Array to hold all fetch promises - ALL ENABLED
   const fetchPromises = [
     { name: 'crypto', url: cryptoUrl },
     { name: 'stocks', url: stockUrl, isFMP: true },
@@ -147,34 +146,34 @@ async function fetchData() {
       if (result.status === 'fulfilled') {
         try {
           const data = await result.value.json();
-          console.log(`[DEBUG] Données brutes reçues pour ${name} (URL: ${url}):`, data);
+          console.log(`[DEBUG] Raw data received for ${name} (URL: ${url}):`, data);
 
           if (isFMP && data && data['Error Message'] && (result.value.status === 403 || result.value.status === 429)) {
-            // Gérer spécifiquement les erreurs FMP (403/429) avec message clair
-            const errorMessage = `Limitation du plan FMP: Données ${name} non disponibles sur le plan gratuit.`;
+            // Handle specific FMP errors (403/429) with clear message
+            const errorMessage = `FMP plan limitation: ${name} data not available on the free plan.`;
             if (name === 'stocks') tempFetchedData.stocks = { error: errorMessage };
             else if (name === 'forex') tempFetchedData.forex = { error: errorMessage };
             else if (name === 'indices') tempFetchedData.indices = { error: errorMessage };
             else if (name === 'commodities') tempFetchedData.commodities = { error: errorMessage };
             console.error(`[ERROR] ${errorMessage}`);
           } else if (Array.isArray(data)) {
-            // Si c'est un tableau, assigner normalement
+            // If it's an array, assign normally
             if (name === 'crypto') tempFetchedData.cryptos = data;
             else if (name === 'stocks') tempFetchedData.stocks = data;
             else if (name === 'forex') tempFetchedData.forex = data;
             else if (name === 'indices') tempFetchedData.indices = data;
             else if (name === 'commodities') tempFetchedData.commodities = data;
           } else {
-            // Si ce n'est pas un tableau et pas une erreur FMP spécifique, c'est inattendu.
-            console.warn(`[WARN] Données ${name} reçues non conformes (non un tableau). Objet reçu:`, data);
-            if (name === 'stocks') tempFetchedData.stocks = { error: `Données ${name} inattendues.` };
-            else if (name === 'forex') tempFetchedData.forex = { error: `Données ${name} inattendues.` };
-            else if (name === 'indices') tempFetchedData.indices = { error: `Données ${name} inattendues.` };
-            else if (name === 'commodities') tempFetchedData.commodities = { error: `Données ${name} inattendues.` };
+            // If it's not an array and not a specific FMP error, it's unexpected.
+            console.warn(`[WARN] Unexpected ${name} data received (not an array). Object received:`, data);
+            if (name === 'stocks') tempFetchedData.stocks = { error: `Unexpected ${name} data.` };
+            else if (name === 'forex') tempFetchedData.forex = { error: `Unexpected ${name} data.` };
+            else if (name === 'indices') tempFetchedData.indices = { error: `Unexpected ${name} data.` };
+            else if (name === 'commodities') tempFetchedData.commodities = { error: `Unexpected ${name} data.` };
           }
         } catch (jsonError) {
-          console.error(`[ERROR] Erreur de parsing JSON pour ${name} (URL: ${url}):`, jsonError);
-          let errorMessage = `Erreur de données pour ${name}.`;
+          console.error(`[ERROR] JSON parsing error for ${name} (URL: ${url}):`, jsonError);
+          let errorMessage = `Data error for ${name}.`;
           if (name === 'stocks' && stockListTableBody) stockListTableBody.innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
           if (name === 'crypto' && cryptoListTableBody) cryptoListTableBody.innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
           if (name === 'indices' && indicesList) indicesList.innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
@@ -182,25 +181,25 @@ async function fetchData() {
           if (name === 'recommendations' && recommendationsList) recommendationsList.innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
         }
       } else {
-        console.error(`[ERROR] Échec de la récupération des données pour ${name} (URL: ${url}):`, result.reason);
-        let errorMessage = `Erreur de chargement pour ${name}.`;
+        console.error(`[ERROR] Failed to fetch data for ${name} (URL: ${url}):`, result.reason);
+        let errorMessage = `Error loading ${name}.`;
         if (result.reason instanceof Response) {
-            errorMessage += ` Statut: ${result.reason.status}`;
+            errorMessage += ` Status: ${result.reason.status}`;
             if (result.reason.status === 403) {
-                errorMessage += " (Clé API invalide ou limites dépassées)";
+                errorMessage += " (Invalid API Key or limits exceeded)";
             } else if (result.reason.status === 429) {
-                errorMessage += " (Trop de requêtes - Limite API dépassée)";
+                errorMessage += " (Too many requests - API Limit Exceeded)";
             }
         } else if (result.reason instanceof Error) {
             errorMessage += ` Message: ${result.reason.message}`;
         }
-        // Stocker l'erreur dans tempFetchedData pour l'affichage
+        // Store the error in tempFetchedData for display
         if (name === 'stocks') tempFetchedData.stocks = { error: errorMessage };
         else if (name === 'forex') tempFetchedData.forex = { error: errorMessage };
         else if (name === 'indices') tempFetchedData.indices = { error: errorMessage };
         else if (name === 'commodities') tempFetchedData.commodities = { error: errorMessage };
         
-        // Afficher un message d'erreur dans l'UI si l'élément existe
+        // Display an error message in the UI if the element exists
         if (name === 'stocks' && stockListTableBody) stockListTableBody.innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
         if (name === 'crypto' && cryptoListTableBody) cryptoListTableBody.innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
         if (name === 'indices' && indicesList) indicesList.innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
@@ -212,17 +211,17 @@ async function fetchData() {
     // Assign all data at once after all fetches and parsing are complete
     allFetchedData = tempFetchedData;
 
-    // --- Appel des fonctions de mise à jour de l'UI ---
-    // S'assurer que les données passées à updateLists/updateIndices sont toujours des tableaux,
-    // ou des objets d'erreur spécifiques pour l'affichage.
-    const stocksToUpdate = Array.isArray(allFetchedData.stocks) ? allFetchedData.stocks : [];
-    const cryptosToUpdate = Array.isArray(allFetchedData.cryptos) ? allFetchedData.cryptos : [];
-    const forexToUpdate = Array.isArray(allFetchedData.forex) ? allFetchedData.forex : [];
-    const indicesToUpdate = Array.isArray(allFetchedData.indices) ? allFetchedData.indices : [];
-    const commoditiesToUpdate = Array.isArray(allFetchedData.commodities) ? allFetchedData.commodities : [];
+    // --- Call UI update functions ---
+    // Ensure data passed to updateLists/updateIndices are always arrays,
+    // or specific error objects for display.
+    const stocksToUpdate = Array.isArray(allFetchedData.stocks) ? allFetchedData.stocks : allFetchedData.stocks; // Pass error object if it is one
+    const cryptosToUpdate = Array.isArray(allFetchedData.cryptos) ? allFetchedData.cryptos : allFetchedData.cryptos;
+    const forexToUpdate = Array.isArray(allFetchedData.forex) ? allFetchedData.forex : allFetchedData.forex;
+    const indicesToUpdate = Array.isArray(allFetchedData.indices) ? allFetchedData.indices : allFetchedData.indices;
+    const commoditiesToUpdate = Array.isArray(allFetchedData.commodities) ? allFetchedData.commodities : allFetchedData.commodities;
 
 
-    // Mettre à jour les listes principales
+    // Update main lists
     const currentActiveSectionId = document.querySelector('.nav-link.active')?.dataset.section || 'crypto'; // Default to crypto
     if (currentActiveSectionId === 'stocks') {
         updateLists(stocksToUpdate, [], forexToUpdate, indicesToUpdate, commoditiesToUpdate);
@@ -233,14 +232,14 @@ async function fetchData() {
         updateLists(stocksToUpdate, cryptosToUpdate, forexToUpdate, indicesToUpdate, commoditiesToUpdate);
     }
     
-    // Mettre à jour les sidebars
-    updateIndices(allFetchedData.indices); // Passe l'objet d'erreur si applicable
-    updateCommodities(allFetchedData.commodities); // Nouvelle fonction pour les matières premières
-    updateRecommendations(allFetchedData.stocks, allFetchedData.cryptos, allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities); // Passe les objets d'erreur si applicable
+    // Update sidebars
+    updateIndices(indicesToUpdate); 
+    updateCommodities(commoditiesToUpdate); 
+    updateRecommendations(stocksToUpdate, cryptosToUpdate, forexToUpdate, indicesToUpdate, commoditiesToUpdate); 
 
   } catch (error) {
-    console.error("Erreur générale lors du chargement des données:", error);
-    const genericErrorMessage = "Une erreur inattendue est survenue lors du chargement des données.";
+    console.error("General error during data loading:", error);
+    const genericErrorMessage = "An unexpected error occurred while loading data.";
     if (stockListTableBody) stockListTableBody.innerHTML = `<tr><td colspan="5" class="error-message">${genericErrorMessage}</td></tr>`;
     if (cryptoListTableBody) cryptoListTableBody.innerHTML = `<tr><td colspan="5" class="error-message">${genericErrorMessage}</td></tr>`;
     if (indicesList) indicesList.innerHTML = `<li><span class="error-message">${genericErrorMessage}</span></li>`;
@@ -253,10 +252,10 @@ async function fetchNews() {
   console.log("[DEBUG] fetchNews called.");
   const newsContainer = document.getElementById('news-articles');
   if (!newsContainer) {
-    console.error("[ERROR] fetchNews - Élément 'news-articles' non trouvé.");
+    console.error("[ERROR] fetchNews - 'news-articles' element not found.");
     return;
   }
-  newsContainer.innerHTML = '<p>Chargement des actualités...</p>';
+  newsContainer.innerHTML = '<p>Loading news...</p>';
 
   const feeds = [
     {
@@ -277,15 +276,15 @@ async function fetchNews() {
     let html = '';
 
     for (const feed of feeds) {
-      // Utilisation d'un proxy alternatif ou d'une approche différente pour les actualités
+      // Using an alternative proxy or different approach for news
       const proxyUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(feed.url);
-      console.log(`[DEBUG] Requête actualités via proxy RSS2JSON: ${proxyUrl}`);
+      console.log(`[DEBUG] News request via RSS2JSON proxy: ${proxyUrl}`);
       const res = await fetch(proxyUrl);
-      const data = await res.json(); // rss2json renvoie du JSON directement
+      const data = await res.json(); // rss2json returns JSON directly
 
       if (data.status !== 'ok') {
-          console.error(`[ERROR] Erreur RSS2JSON pour ${feed.label}:`, data);
-          html += `<h3 class="news-source">${feed.label}</h3><p class="error-message">Erreur de chargement des actualités pour cette source.</p>`;
+          console.error(`[ERROR] RSS2JSON error for ${feed.label}:`, data);
+          html += `<h3 class="news-source">${feed.label}</h3><p class="error-message">Error loading news for this source.</p>`;
           continue;
       }
 
@@ -293,13 +292,13 @@ async function fetchNews() {
 
       data.items.forEach((item, index) => {
         // Limit to 4 articles per feed to avoid overload
-        if (index >= 5) return;
+        if (index >= 4) return;
 
         const title = item.title ?? '';
         const link = item.link ?? '';
         const pubDate = new Date(item.pubDate ?? '').toLocaleDateString('en-US'); 
         const description = item.description ?? '';
-        const imageUrl = item.thumbnail || 'https://placehold.co/150x100/A0A0A0/FFFFFF?text=No+Image'; // rss2json a souvent un champ thumbnail
+        const imageUrl = item.thumbnail || 'https://placehold.co/150x100/A0A0A0/FFFFFF?text=No+Image'; // rss2json often has a thumbnail field
 
         html += `
           <div class="news-card">
@@ -314,10 +313,10 @@ async function fetchNews() {
     }
 
     // Display news or a message if none found
-    newsContainer.innerHTML = html || '<p>Aucune actualité trouvée.</p>';
+    newsContainer.innerHTML = html || '<p>No news found.</p>';
   } catch (error) {
-    console.error("Erreur de chargement des actualités:", error);
-    newsContainer.innerHTML = '<p class="error-message">Erreur de chargement des actualités. Veuillez vérifier votre connexion Internet ou réessayer plus tard. (Problème de proxy/CORS)</p>';
+    console.error("Error loading news:", error);
+    newsContainer.innerHTML = '<p class="error-message">Error loading news. Please check your internet connection or try again later. (Proxy/CORS issue)</p>';
   }
 }
 
@@ -362,7 +361,7 @@ function sortData(data, key, direction) {
 
 // Function to update stock and crypto lists
 function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = {}) {
-  console.log("[DEBUG] updateLists - Données reçues:");
+  console.log("[DEBUG] updateLists - Received data:");
   console.log("  stocks:", stocks);
   console.log("  cryptos:", cryptos);
   console.log("  forex:", forex);
@@ -373,7 +372,7 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
   const cryptoListTableBody = document.getElementById('crypto-list');
 
   if (!stockListTableBody || !cryptoListTableBody) {
-    console.error("[ERROR] updateLists - Éléments du DOM (stock-list ou crypto-list) non trouvés.");
+    console.error("[ERROR] updateLists - DOM elements (stock-list or crypto-list) not found.");
     return;
   }
 
@@ -385,12 +384,13 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
 
   // Data for Stock/Forex/Indices/Commodities table (FMP data)
   const allNonCryptoAssets = [];
+  // Add only if it's not an error object
   if (Array.isArray(stocks)) allNonCryptoAssets.push(...stocks);
   if (Array.isArray(forex)) allNonCryptoAssets.push(...forex);
   if (Array.isArray(indices)) allNonCryptoAssets.push(...indices);
   if (Array.isArray(commodities)) allNonCryptoAssets.push(...commodities);
 
-  console.log("[DEBUG] updateLists - allNonCryptoAssets (après concaténation):", allNonCryptoAssets);
+  console.log("[DEBUG] updateLists - allNonCryptoAssets (after concatenation):", allNonCryptoAssets);
 
   // Apply sorting if a configuration is provided
   let sortedStocks = allNonCryptoAssets;
@@ -401,25 +401,15 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
   } else if (sortConfig.tableId === 'crypto-list') {
       sortedCryptos = sortData(cryptos, sortConfig.key, sortConfig.direction);
   }
-  console.log("[DEBUG] updateLists - sortedStocks (après tri):", sortedStocks);
-  console.log("[DEBUG] updateLists - sortedCryptos (après tri):", sortedCryptos);
+  console.log("[DEBUG] updateLists - sortedStocks (after sorting):", sortedStocks);
+  console.log("[DEBUG] updateLists - sortedCryptos (after sorting):", sortedCryptos);
 
-  // Tentative d'affichage des actions/forex/indices/commodities
-  console.log("[DEBUG] updateLists - Tentative d'affichage des actions. Nombre d'éléments:", sortedStocks.length);
-  if (sortedStocks.length === 0) {
-      let errorMessage = '';
-      // Vérifier explicitement si les données individuelles sont des objets d'erreur
-      if (stocks && stocks.error) errorMessage = stocks.error;
-      else if (forex && forex.error) errorMessage = forex.error;
-      else if (indices && indices.error) errorMessage = indices.error;
-      else if (commodities && commodities.error) errorMessage = commodities.error;
-
-      if (errorMessage) {
-          stockListTableBody.innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
-      } else {
-          // Si pas d'erreur spécifique mais tableau vide
-          stockListTableBody.innerHTML = `<tr><td colspan="5">Aucune donnée d'actions, de forex, d'indices ou de matières premières disponible.</td></tr>`;
-      }
+  // Attempt to display stocks/forex/indices/commodities
+  console.log("[DEBUG] updateLists - Attempting to display stocks. Number of elements:", sortedStocks.length);
+  if (stocks && stocks.error) { // Display error if stocks is an error object
+      stockListTableBody.innerHTML = `<tr><td colspan="5" class="error-message">${stocks.error}</td></tr>`;
+  } else if (sortedStocks.length === 0) {
+      stockListTableBody.innerHTML = `<tr><td colspan="5">No stock, forex, indices, or commodity data available.</td></tr>`;
   } else {
       sortedStocks.forEach(asset => {
         const change = asset.changesPercentage ?? 0;
@@ -429,11 +419,11 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
         const isGain = change >= 0;
         let recommendation = '';
         if (change > 3) {
-          recommendation = '📈 Acheter';
+          recommendation = '📈 Buy';
         } else if (change < -3) {
-          recommendation = '📉 Vendre';
+          recommendation = '📉 Sell';
         } else {
-          recommendation = '🤝 Conserver';
+          recommendation = '🤝 Hold';
         }
         const changeClass = isGain ? 'gain' : 'loss';
         const changeArrow = isGain ? '▲' : '▼';
@@ -449,13 +439,13 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
         `;
         stockListTableBody.innerHTML += row;
       });
-      console.log("[DEBUG] stockListTableBody.innerHTML après ajout des lignes:", stockListTableBody.innerHTML); // Log du contenu final
+      console.log("[DEBUG] stockListTableBody.innerHTML after adding rows:", stockListTableBody.innerHTML); // Log final content
   }
 
-  // Tentative d'affichage des cryptos
-  console.log("[DEBUG] updateLists - Tentative d'affichage des cryptos. Nombre d'éléments:", sortedCryptos.length);
+  // Attempt to display cryptos
+  console.log("[DEBUG] updateLists - Attempting to display cryptos. Number of elements:", sortedCryptos.length);
   if (sortedCryptos.length === 0) {
-      cryptoListTableBody.innerHTML = `<tr><td colspan="5">Aucune donnée de cryptomonnaie disponible.</td></tr>`;
+      cryptoListTableBody.innerHTML = `<tr><td colspan="5">No cryptocurrency data available.</td></tr>`;
   } else {
       sortedCryptos.forEach(asset => {
         const change = asset.price_change_percentage_24h ?? 0;
@@ -464,11 +454,11 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
         const isGain = change >= 0;
         let recommendation = '';
         if (change > 3) {
-          recommendation = '📈 Acheter';
+          recommendation = '📈 Buy';
         } else if (change < -3) {
-          recommendation = '📉 Vendre';
+          recommendation = '📉 Sell';
         } else {
-          recommendation = '🤝 Conserver';
+          recommendation = '🤝 Hold';
         }
         const changeClass = isGain ? 'gain' : 'loss';
         const changeArrow = isGain ? '▲' : '▼';
@@ -484,7 +474,7 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
         `;
         cryptoListTableBody.innerHTML += row;
       });
-      console.log("[DEBUG] cryptoListTableBody.innerHTML après ajout des lignes:", cryptoListTableBody.innerHTML); // Log du contenu final
+      console.log("[DEBUG] cryptoListTableBody.innerHTML after adding rows:", cryptoListTableBody.innerHTML); // Log final content
   }
 }
 
@@ -493,27 +483,27 @@ function updateIndices(data) {
   console.log("[DEBUG] updateIndices called.");
   const list = document.getElementById('indices-list');
   if (!list) {
-    console.error("[ERROR] updateIndices - Élément 'indices-list' non trouvé.");
+    console.error("[ERROR] updateIndices - 'indices-list' element not found.");
     return;
   }
 
-  console.log("[DEBUG] updateIndices - Données reçues:", data);
+  console.log("[DEBUG] updateIndices - Received data:", data);
 
-  if (data && data.error) { // Si c'est un objet d'erreur de FMP
+  if (data && data.error) { // If it's an FMP error object
       list.innerHTML = `<li><span class="error-message">${data.error}</span></li>`;
       console.error("[ERROR] FMP Indices API Error:", data.error);
       return;
   }
   
   if (!Array.isArray(data)) {
-    console.error("Les données pour updateIndices ne sont pas un tableau.", data);
-    list.innerHTML = '<li>Aucun indice de marché disponible.</li>'; // Afficher le message si non un tableau
+    console.error("Data for updateIndices is not an array.", data);
+    list.innerHTML = '<li>No market indices available.</li>'; // Display message if not an array
     return;
   }
   
-  console.log("[DEBUG] updateIndices - Tentative d'affichage des indices. Nombre d'éléments:", data.length);
+  console.log("[DEBUG] updateIndices - Attempting to display indices. Number of elements:", data.length);
   if (data.length === 0) {
-      list.innerHTML = '<li>Aucun indice de marché disponible.</li>';
+      list.innerHTML = '<li>No market indices available.</li>';
   } else {
       list.innerHTML = data.map(item => {
         const change = item.changesPercentage?.toFixed(2);
@@ -524,16 +514,16 @@ function updateIndices(data) {
   }
 }
 
-// Nouvelle fonction pour mettre à jour la liste des matières premières
+// New function to update the commodities list
 function updateCommodities(data) {
     console.log("[DEBUG] updateCommodities called.");
     const list = document.getElementById('commodities-list');
     if (!list) {
-      console.error("[ERROR] updateCommodities - Élément 'commodities-list' non trouvé.");
+      console.error("[ERROR] updateCommodities - 'commodities-list' element not found.");
       return;
     }
 
-    console.log("[DEBUG] updateCommodities - Données reçues:", data);
+    console.log("[DEBUG] updateCommodities - Received data:", data);
 
     if (data && data.error) {
         list.innerHTML = `<li><span class="error-message">${data.error}</span></li>`;
@@ -542,14 +532,14 @@ function updateCommodities(data) {
     }
 
     if (!Array.isArray(data)) {
-        console.error("Les données pour updateCommodities ne sont pas un tableau.", data);
-        list.innerHTML = '<li>Aucune matière première disponible.</li>';
+        console.error("Data for updateCommodities is not an array.", data);
+        list.innerHTML = '<li>No commodities available.</li>';
         return;
     }
 
-    console.log("[DEBUG] updateCommodities - Tentative d'affichage des matières premières. Nombre d'éléments:", data.length);
+    console.log("[DEBUG] updateCommodities - Attempting to display commodities. Number of elements:", data.length);
     if (data.length === 0) {
-        list.innerHTML = '<li>Aucune matière première disponible.</li>';
+        list.innerHTML = '<li>No commodities available.</li>';
     } else {
         list.innerHTML = data.map(item => {
             const change = item.changesPercentage?.toFixed(2);
@@ -560,24 +550,34 @@ function updateCommodities(data) {
     }
 }
 
-// Fonction pour mettre à jour les recommandations (inclut maintenant les messages d'erreur FMP)
+// Function to update recommendations (now includes FMP error messages)
 function updateRecommendations(stocks, cryptos, forex, indices, commodities) {
   console.log("[DEBUG] updateRecommendations called.");
   const recList = document.getElementById('recommendations');
   if (!recList) {
-    console.error("[ERROR] updateRecommendations - Élément 'recommendations' non trouvé.");
+    console.error("[ERROR] updateRecommendations - 'recommendations' element not found.");
     return;
   }
 
   let recommendationHtml = '';
+  let apiLimitWarningDisplayed = false;
 
-  // Ajouter les messages d'erreur FMP en priorité
-  if (stocks && stocks.error) recommendationHtml += `<li><span class="error-message">${stocks.error}</span></li>`;
-  if (forex && forex.error) recommendationHtml += `<li><span class="error-message">${forex.error}</span></li>`;
-  if (indices && indices.error) recommendationHtml += `<li><span class="error-message">${indices.error}</span></li>`;
-  if (commodities && commodities.error) recommendationHtml += `<li><span class="error-message">${commodities.error}</span></li>`;
+  // Check if any FMP source returned a limit error
+  if ((stocks && stocks.error && stocks.error.includes('FMP plan limitation')) ||
+      (forex && forex.error && forex.error.includes('FMP plan limitation')) ||
+      (indices && indices.error && indices.error.includes('FMP plan limitation')) ||
+      (commodities && commodities.error && commodities.error.includes('FMP plan limitation'))) {
+    apiLimitWarningDisplayed = true;
+    recommendationHtml += `<li><span class="error-message">⚠️ FMP API Limit Reached: Some data (Stocks, Forex, Indices, Commodities) might not refresh. Automatic refresh is every 4 hours.</span></li>`;
+  }
 
-  // Ajouter les recommandations des actifs qui ont des données valides
+  // Add other specific FMP error messages (not related to limits)
+  if (stocks && stocks.error && !stocks.error.includes('FMP plan limitation')) recommendationHtml += `<li><span class="error-message">${stocks.error}</span></li>`;
+  if (forex && forex.error && !forex.error.includes('FMP plan limitation')) recommendationHtml += `<li><span class="error-message">${forex.error}</span></li>`;
+  if (indices && indices.error && !indices.error.includes('FMP plan limitation')) recommendationHtml += `<li><span class="error-message">${indices.error}</span></li>`;
+  if (commodities && commodities.error && !commodities.error.includes('FMP plan limitation')) recommendationHtml += `<li><span class="error-message">${commodities.error}</span></li>`;
+
+  // Add recommendations for assets with valid data (which are arrays)
   const allValidAssetsForRecommendations = [
     ...(Array.isArray(stocks) ? stocks : []),
     ...(Array.isArray(cryptos) ? cryptos : []),
@@ -587,11 +587,11 @@ function updateRecommendations(stocks, cryptos, forex, indices, commodities) {
   ];
 
   if (allValidAssetsForRecommendations.length === 0 && !recommendationHtml) {
-      recList.innerHTML = '<li>Aucune recommandation disponible.</li>';
+      recList.innerHTML = '<li>No recommendations available.</li>';
   } else {
       recommendationHtml += allValidAssetsForRecommendations.map(asset => {
         const change = asset.price_change_percentage_24h ?? asset.changesPercentage ?? 0;
-        const recommendation = change > 3 ? '📈 Acheter' : change < -3 ? '📉 Vendre' : '🤝 Conserver';
+        const recommendation = change > 3 ? '📈 Buy' : change < -3 ? '📉 Sell' : '🤝 Hold';
         return `<li>${asset.name}: ${recommendation}</li>`;
       }).join('');
       recList.innerHTML = recommendationHtml;
@@ -615,12 +615,12 @@ function performSearch(query) {
     const targetSection = document.getElementById(lastActiveSection);
     if (targetSection) targetSection.classList.remove('hidden');
 
-    // Assurez-vous que les données passées sont des tableaux ou des objets d'erreur
-    const stocksToUpdate = Array.isArray(allFetchedData.stocks) ? allFetchedData.stocks : [];
-    const cryptosToUpdate = Array.isArray(allFetchedData.cryptos) ? allFetchedData.cryptos : [];
-    const forexToUpdate = Array.isArray(allFetchedData.forex) ? allFetchedData.forex : [];
-    const indicesToUpdate = Array.isArray(allFetchedData.indices) ? allFetchedData.indices : [];
-    const commoditiesToUpdate = Array.isArray(allFetchedData.commodities) ? allFetchedData.commodities : [];
+    // Ensure that the passed data are arrays or error objects
+    const stocksToUpdate = Array.isArray(allFetchedData.stocks) ? allFetchedData.stocks : allFetchedData.stocks;
+    const cryptosToUpdate = Array.isArray(allFetchedData.cryptos) ? allFetchedData.cryptos : allFetchedData.cryptos;
+    const forexToUpdate = Array.isArray(allFetchedData.forex) ? allFetchedData.forex : allFetchedData.forex;
+    const indicesToUpdate = Array.isArray(allFetchedData.indices) ? allFetchedData.indices : allFetchedData.indices;
+    const commoditiesToUpdate = Array.isArray(allFetchedData.commodities) ? allFetchedData.commodities : allFetchedData.commodities;
 
     if (lastActiveSection === 'stocks') {
       updateLists(stocksToUpdate, [], forexToUpdate, indicesToUpdate, commoditiesToUpdate);
@@ -634,9 +634,9 @@ function performSearch(query) {
         document.getElementById('crypto')?.classList.add('hidden');
         document.getElementById('news')?.classList.add('hidden');
     }
-    updateIndices(allFetchedData.indices);
-    updateCommodities(allFetchedData.commodities);
-    updateRecommendations(allFetchedData.stocks, allFetchedData.cryptos, allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities);
+    updateIndices(indicesToUpdate);
+    updateCommodities(commoditiesToUpdate);
+    updateRecommendations(stocksToUpdate, cryptosToUpdate, forexToUpdate, indicesToUpdate, commoditiesToUpdate);
     return;
   }
 
@@ -676,8 +676,8 @@ function performSearch(query) {
   document.getElementById('home')?.classList.add('hidden');
 
   updateLists(filteredStocks, filteredCryptos, filteredForex, filteredIndices, filteredCommodities);
-  updateIndices(allFetchedData.indices); // Passe l'objet d'erreur si applicable
-  updateCommodities(allFetchedData.commodities); // Passe l'objet d'erreur si applicable
+  updateIndices(allFetchedData.indices); 
+  updateCommodities(allFetchedData.commodities); 
   updateRecommendations(allFetchedData.stocks, allFetchedData.cryptos, allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities);
 }
 
@@ -714,12 +714,12 @@ function handleNavigation() {
           console.error(`[ERROR] Section element not found for: ${section}`);
         }
 
-        // Assurez-vous que les données passées sont des tableaux ou des objets d'erreur
-        const stocksToUpdate = Array.isArray(allFetchedData.stocks) ? allFetchedData.stocks : [];
-        const cryptosToUpdate = Array.isArray(allFetchedData.cryptos) ? allFetchedData.cryptos : [];
-        const forexToUpdate = Array.isArray(allFetchedData.forex) ? allFetchedData.forex : [];
-        const indicesToUpdate = Array.isArray(allFetchedData.indices) ? allFetchedData.indices : [];
-        const commoditiesToUpdate = Array.isArray(allFetchedData.commodities) ? allFetchedData.commodities : [];
+        // Ensure that the passed data are arrays or error objects
+        const stocksToUpdate = Array.isArray(allFetchedData.stocks) ? allFetchedData.stocks : allFetchedData.stocks;
+        const cryptosToUpdate = Array.isArray(allFetchedData.cryptos) ? allFetchedData.cryptos : allFetchedData.cryptos;
+        const forexToUpdate = Array.isArray(allFetchedData.forex) ? allFetchedData.forex : allFetchedData.forex;
+        const indicesToUpdate = Array.isArray(allFetchedData.indices) ? allFetchedData.indices : allFetchedData.indices;
+        const commoditiesToUpdate = Array.isArray(allFetchedData.commodities) ? allFetchedData.commodities : allFetchedData.commodities;
 
         if (section === 'stocks') {
           updateLists(stocksToUpdate, [], forexToUpdate, indicesToUpdate, commoditiesToUpdate);
@@ -740,18 +740,18 @@ function handleNavigation() {
   });
 }
 
-// Fonction pour afficher le modal du graphique
-window.showChartModal = async function(symbol, type, name) { // Rendu global, 'period' retiré
+// Function to display the chart modal
+window.showChartModal = async function(symbol, type, name) { // Made global, 'period' removed
   console.log(`[DEBUG] showChartModal called for symbol: ${symbol}, type: ${type}, name: ${name}`);
   const modal = document.getElementById('chartModal');
   const chartTitle = document.getElementById('chartTitle');
   const chartError = document.getElementById('chartError');
   const chartCanvas = document.getElementById('historicalChart');
-  const ctx = chartCanvas?.getContext('2d'); // Utiliser optional chaining
-  const chartPeriodSelector = document.getElementById('chartPeriodSelector'); // Référence au sélecteur de période
+  const ctx = chartCanvas?.getContext('2d'); // Use optional chaining
+  const chartPeriodSelector = document.getElementById('chartPeriodSelector'); // Reference to the period selector
 
   if (!modal || !chartTitle || !chartError || !chartCanvas || !ctx) {
-    console.error("[ERROR] showChartModal - Un ou plusieurs éléments du DOM du modal sont manquants. Impossible d'afficher le graphique.");
+    console.error("[ERROR] showChartModal - One or more modal DOM elements are missing. Cannot display chart.");
     return;
   }
 
@@ -760,14 +760,14 @@ window.showChartModal = async function(symbol, type, name) { // Rendu global, 'p
   currentChartType = type;
   currentChartName = name;
 
-  chartTitle.textContent = `Évolution du prix pour ${name} (USD)`;
-  chartError.classList.add('hidden'); // Masquer les erreurs précédentes
-  modal.classList.remove('hidden'); // Assurez-vous que le modal est visible
+  chartTitle.textContent = `Price Evolution for ${name} (USD)`;
+  chartError.classList.add('hidden'); // Hide previous errors
+  modal.classList.remove('hidden'); // Ensure the modal is visible
 
-  // Masquer le sélecteur de période car nous n'en avons plus besoin
+  // Hide the period selector as we no longer need it
   if (chartPeriodSelector) {
-      chartPeriodSelector.innerHTML = ''; // Vider les boutons
-      chartPeriodSelector.classList.add('hidden'); // Masquer le conteneur
+      chartPeriodSelector.innerHTML = ''; // Clear buttons
+      chartPeriodSelector.classList.add('hidden'); // Hide container
   }
 
   // Destroy old chart if it exists
@@ -777,7 +777,7 @@ window.showChartModal = async function(symbol, type, name) { // Rendu global, 'p
   }
 
   try {
-    // Appel de fetchHistoricalData sans le paramètre period, il est maintenant fixe à 1 an
+    // Call fetchHistoricalData without the period parameter, it is now fixed to 1 year
     const historicalData = await fetchHistoricalData(symbol, type);
 
     if (historicalData && historicalData.length > 0) {
@@ -785,17 +785,17 @@ window.showChartModal = async function(symbol, type, name) { // Rendu global, 'p
       console.log("[DEBUG] Chart rendered successfully.");
     } else {
       chartError.classList.remove('hidden');
-      chartError.textContent = "Aucune donnée historique disponible pour cet actif ou erreur API.";
+      chartError.textContent = "No historical data available for this asset or API error.";
       console.warn("[WARN] No historical data or empty data array received.");
     }
   } catch (error) {
-    console.error("Erreur de chargement des données historiques:", error);
+    console.error("Error loading historical data:", error);
     chartError.classList.remove('hidden');
-    chartError.textContent = "Erreur lors du chargement des données historiques. Veuillez réessayer plus tard.";
+    chartError.textContent = "Error loading historical data. Please try again later.";
   }
 }
 
-// Fonction pour fermer le modal du graphique
+// Function to close the chart modal
 function closeChartModal() {
   console.log("[DEBUG] closeChartModal called.");
   const modal = document.getElementById('chartModal');
@@ -804,7 +804,7 @@ function closeChartModal() {
     console.log("[DEBUG] Chart modal hidden.");
   }
   if (myChart) {
-    myChart.destroy(); // Détruire le graphique pour libérer les ressources
+    myChart.destroy(); // Destroy the chart to free up resources
     console.log("[DEBUG] Chart destroyed on close.");
   }
   // Clear period selector buttons (already hidden, but good practice)
@@ -835,19 +835,19 @@ async function fetchHistoricalData(symbol, type) { // 'period' parameter removed
     dataPath = 'historical';
   }
 
-  console.log(`[DEBUG] Requête historique URL: ${url}`); // Ajout d'un log pour l'URL complète
+  console.log(`[DEBUG] Historical request URL: ${url}`); // Add log for full URL
 
   try {
     const response = await fetch(url);
-    console.log(`[DEBUG] Réponse API historique - Statut: ${response.status} pour URL: ${url}`); // Log du statut de réponse
+    console.log(`[DEBUG] Historical API Response - Status: ${response.status} for URL: ${url}`); // Log response status
     if (!response.ok) { // Check if response status is not 2xx
         const errorText = await response.text();
-        console.error(`Erreur API pour les données historiques (${type}, ${symbol}): Statut ${response.status} - ${errorText}`);
+        console.error(`API error for historical data (${type}, ${symbol}): Status ${response.status} - ${errorText}`);
         // Throw an error to be caught by showChartModal
-        throw new Error(`Échec de la récupération des données historiques: ${response.statusText || 'Erreur inconnue'}. Vérifiez la clé API et la console.`);
+        throw new Error(`Failed to fetch historical data: ${response.statusText || 'Unknown error'}. Check API key and console.`);
     }
     const data = await response.json();
-    console.log(`[DEBUG] Données brutes reçues pour ${symbol} (${type}):`, data); // Log des données brutes
+    console.log(`[DEBUG] Raw data received for ${symbol} (${type}):`, data); // Log raw data
 
     let historicalPrices = [];
 
@@ -862,17 +862,17 @@ async function fetchHistoricalData(symbol, type) { // 'period' parameter removed
         price: item.close
       })).reverse(); // FMP returns in reverse chronological order
     } else {
-      console.warn(`Aucune donnée historique trouvée pour ${symbol} (${type}). Réponse de l'API:`, data);
+      console.warn(`No historical data found for ${symbol} (${type}). API response:`, data);
       return [];
     }
     return historicalPrices;
   } catch (error) {
-    console.error(`Erreur de récupération des données historiques pour ${symbol} (${type}):`, error);
+    console.error(`Error fetching historical data for ${symbol} (${type}):`, error);
     throw error;
   }
 }
 
-// Fonction pour rendre le graphique avec Chart.js
+// Function to render the chart with Chart.js
 function renderChart(historicalData, assetName, ctx, currencyCode) {
   console.log("[DEBUG] renderChart called.");
   const labels = historicalData.map(data => data.date);
@@ -883,15 +883,15 @@ function renderChart(historicalData, assetName, ctx, currencyCode) {
     data: {
       labels: labels,
       datasets: [{
-        label: `Prix de ${assetName} (${currencyCode})`,
+        label: `Price of ${assetName} (${currencyCode})`,
         data: prices,
-        borderColor: '#FFFFFF', // Couleur de la ligne du graphique en blanc
-        backgroundColor: 'rgba(255, 255, 255, 0.2)', // Fond du graphique en blanc transparent (légèrement plus opaque)
-        tension: 0.2, // Légère courbure pour un aspect plus doux
+        borderColor: '#FFFFFF', // Chart line color to white
+        backgroundColor: 'rgba(255, 255, 255, 0.2)', // Chart background to transparent white (slightly more opaque)
+        tension: 0.2, // Slight curve for a softer look
         fill: true,
-        pointRadius: 0, // Cacher les points individuels
-        pointBackgroundColor: '#FFFFFF', // Couleur des points en blanc (même si cachés)
-        pointBorderColor: '#FFFFFF' // Couleur de la bordure des points en blanc (même si cachés)
+        pointRadius: 0, // Hide individual points
+        pointBackgroundColor: '#FFFFFF', // Point color to white (even if hidden)
+        pointBorderColor: '#FFFFFF' // Point border color to white (even if hidden)
       }]
     },
     options: {
@@ -902,29 +902,29 @@ function renderChart(historicalData, assetName, ctx, currencyCode) {
           title: {
             display: true,
             text: 'Date',
-            color: '#e0e0e0' // Couleur du texte des titres d'axe
+            color: '#e0e0e0' // Axis title text color
           },
           ticks: {
-            color: '#b0b0b0' // Couleur du texte des étiquettes des ticks
+            color: '#b0b0b0' // Tick label text color
           },
           grid: {
-            color: '#3a3a3a' // Couleur des lignes de grille
+            color: '#3a3a3a' // Grid line color
           }
         },
         y: {
           title: {
             display: true,
-            text: `Prix (${currencyCode})`,
-            color: '#e0e0e0' // Couleur du texte des titres d'axe
+            text: `Price (${currencyCode})`,
+            color: '#e0e0e0' // Axis title text color
           },
           ticks: {
-            color: '#b0b0b0', // Couleur du texte des étiquettes des ticks
+            color: '#b0b0b0', // Tick label text color
             callback: function(value) {
                 return formatPrice(value, currentCurrency);
             }
           },
           grid: {
-            color: '#3a3a3a' // Couleur des lignes de grille
+            color: '#3a3a3a' // Grid line color
           }
         }
       },
@@ -945,7 +945,7 @@ function renderChart(historicalData, assetName, ctx, currencyCode) {
         },
         legend: {
             labels: {
-                color: '#e0e0e0' // Couleur du texte de la légende
+                color: '#e0e0e0' // Legend text color
             }
         }
       }
@@ -953,24 +953,24 @@ function renderChart(historicalData, assetName, ctx, currencyCode) {
   });
 }
 
-// --- Initialisation au chargement du DOM ---
+// --- DOM Content Loaded Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
   console.log("[INIT] DOMContentLoaded event fired. Starting initialization sequence.");
   
-  // 1. Attacher les écouteurs de navigation en premier
+  // 1. Attach navigation listeners first
   handleNavigation(); 
 
-  // 2. Masquer toutes les sections de contenu
+  // 2. Hide all content sections initially
   document.querySelectorAll('.content-section').forEach(sec => {
     sec.classList.add('hidden');
-    console.log(`[INIT] Section cachée: ${sec.id}, hidden: ${sec.classList.contains('hidden')}`);
+    console.log(`[INIT] Section hidden: ${sec.id}, hidden: ${sec.classList.contains('hidden')}`);
   });
 
-  // 3. Simuler un clic sur le lien de navigation 'Crypto' pour initialiser l'affichage
+  // 3. Simulate a click on the 'Crypto' nav link to initialize the display
   const cryptoNavLink = document.querySelector('.nav-link[data-section="crypto"]');
   if (cryptoNavLink) {
     console.log("[INIT] Simulating click on 'Crypto' nav link to set initial active section.");
-    cryptoNavLink.click(); // Simule un clic pour déclencher handleNavigation
+    cryptoNavLink.click(); // Simulate click to trigger handleNavigation
   } else {
     console.error("[INIT] Crypto nav link element not found! Cannot set initial active section.");
     // Fallback: if crypto link not found, try to show home
@@ -979,14 +979,14 @@ document.addEventListener('DOMContentLoaded', () => {
     else console.error("[INIT] Home nav link also not found. UI might not initialize correctly.");
   }
 
-  // 4. Lancer la récupération des données
+  // 4. Start data fetching
   fetchData(); 
 
-  // Gestion du bouton d'authentification (désactivé, sans Firebase)
+  // Authentication button handling (disabled, no Firebase)
   const authButton = document.getElementById('authButton');
   if (authButton) {
     authButton.addEventListener('click', () => {
-      console.log("Le bouton de connexion a été cliqué. La fonctionnalité de connexion est actuellement désactivée.");
+      console.log("Login button clicked. Login functionality is currently disabled.");
     });
     console.log("[INIT] Auth button listener attached.");
   } else {
@@ -994,7 +994,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 
-  // Ajout de l'écouteur d'événement pour la barre de recherche
+  // Add event listener for the search bar
   const searchBar = document.querySelector('.search-bar');
   if (searchBar) {
     searchBar.addEventListener('input', (e) => {
@@ -1005,7 +1005,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.warn("[INIT] Search bar element not found.");
   }
 
-  // Écouteur pour le bouton de fermeture du modal
+  // Listener for the modal close button
   const closeButton = document.querySelector('.close-button');
   if (closeButton) {
     closeButton.addEventListener('click', closeChartModal);
@@ -1014,7 +1014,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.warn("[INIT] Close button element not found.");
   }
 
-  // Fermer le modal si l'on clique en dehors du contenu (sur l'overlay)
+  // Close modal if clicking outside the content (on the overlay)
   const chartModal = document.getElementById('chartModal');
   if (chartModal) {
     chartModal.addEventListener('click', (e) => {
@@ -1027,7 +1027,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.warn("[INIT] Chart modal element not found.");
   }
 
-  // Gestion du tri des tableaux
+  // Table sorting handling
   document.querySelectorAll('table thead th[data-sort-key]').forEach(header => {
     if (header) { // Check if header exists
       header.addEventListener('click', () => {
@@ -1036,33 +1036,33 @@ document.addEventListener('DOMContentLoaded', () => {
         const sortKey = header.dataset.sortKey;
         let sortDirection = header.dataset.sortDirection;
 
-        // Déterminer la nouvelle direction de tri
+        // Determine the new sort direction
         if (sortDirection === 'asc') {
           sortDirection = 'desc';
         } else if (sortDirection === 'desc') {
-          sortDirection = 'asc'; // Revenir à asc si déjà desc
+          sortDirection = 'asc'; // Revert to asc if already desc
         } else {
-          sortDirection = 'asc'; // Par défaut à asc
+          sortDirection = 'asc'; // Default to asc
         }
 
-        // Réinitialiser les flèches de tri pour tous les en-têtes du même tableau
+        // Reset sort arrows for all headers in the same table
         header.closest('thead').querySelectorAll('th[data-sort-key]').forEach(th => {
           if (th !== header) {
-            th.dataset.sortDirection = 'none'; // Masquer la flèche
+            th.dataset.sortDirection = 'none'; // Hide the arrow
           }
         });
 
-        // Mettre à jour la direction pour l'en-tête cliqué
+        // Update the direction for the clicked header
         header.dataset.sortDirection = sortDirection;
 
-        // Assurez-vous que les données passées sont des tableaux ou des objets d'erreur
-        const stocksToUpdate = Array.isArray(allFetchedData.stocks) ? allFetchedData.stocks : [];
-        const cryptosToUpdate = Array.isArray(allFetchedData.cryptos) ? allFetchedData.cryptos : [];
-        const forexToUpdate = Array.isArray(allFetchedData.forex) ? allFetchedData.forex : [];
-        const indicesToUpdate = Array.isArray(allFetchedData.indices) ? allFetchedData.indices : [];
-        const commoditiesToUpdate = Array.isArray(allFetchedData.commodities) ? allFetchedData.commodities : [];
+        // Ensure that the passed data are arrays or error objects
+        const stocksToUpdate = Array.isArray(allFetchedData.stocks) ? allFetchedData.stocks : allFetchedData.stocks;
+        const cryptosToUpdate = Array.isArray(allFetchedData.cryptos) ? allFetchedData.cryptos : allFetchedData.cryptos;
+        const forexToUpdate = Array.isArray(allFetchedData.forex) ? allFetchedData.forex : allFetchedData.forex;
+        const indicesToUpdate = Array.isArray(allFetchedData.indices) ? allFetchedData.indices : allFetchedData.indices;
+        const commoditiesToUpdate = Array.isArray(allFetchedData.commodities) ? allFetchedData.commodities : allFetchedData.commodities;
 
-        // Appliquer le tri et mettre à jour la liste
+        // Apply sorting and update the list
         if (tableId === 'stock-list') {
           updateLists(stocksToUpdate, [], forexToUpdate, indicesToUpdate, commoditiesToUpdate, { tableId: tableId, key: sortKey, direction: sortDirection });
         } else if (tableId === 'crypto-list') {
@@ -1074,7 +1074,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
 
-  // Interval de rafraîchissement des données (maintenant toutes les 4 heures)
-  setInterval(fetchData, 14400000); // 14400000 ms = 4 heures
+  // Data refresh interval (now every 4 hours)
+  setInterval(fetchData, 14400000); // 14400000 ms = 4 hours
   console.log("[INIT] Data refresh interval set to 4 hours.");
 });
