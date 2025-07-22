@@ -98,6 +98,7 @@ async function fetchData() {
   const cryptoUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana,cardano,ripple,dogecoin,tron,polkadot,polygon,chainlink';
   
   // URLs FMP avec un seul symbole pour minimiser les requêtes et tester le 429
+  // Si même avec un seul symbole ça bloque, c'est une limitation sévère du plan gratuit.
   const stockUrl = `https://financialmodelingprep.com/api/v3/quote/AAPL?apikey=${apiKey}`; 
   const forexUrl = `https://financialmodelingprep.com/api/v3/quote/EURUSD?apikey=${apiKey}`; 
   const indicesUrl = `https://financialmodelingprep.com/api/v3/quote/%5EDJI?apikey=${apiKey}`; 
@@ -226,7 +227,7 @@ async function fetchData() {
     // Mettre à jour les sidebars
     updateIndices(allFetchedData.indices); // Passe l'objet d'erreur si applicable
     updateCommodities(allFetchedData.commodities); // Nouvelle fonction pour les matières premières
-    updateRecommendations(stocksToUpdate, cryptosToUpdate, forexToUpdate, indicesToUpdate, commoditiesToUpdate);
+    updateRecommendations(allFetchedData.stocks, allFetchedData.cryptos, allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities); // Passe les objets d'erreur si applicable
 
   } catch (error) {
     console.error("Erreur générale lors du chargement des données:", error);
@@ -263,41 +264,31 @@ async function fetchNews() {
 
     for (const feed of feeds) {
       // NOUVEAU PROXY CORS
-      const proxyUrl = 'https://cors-anywhere.herokuapp.com/' + feed.url; // Ne pas encoder l'URL complète du flux RSS ici
-      console.log(`[DEBUG] Requête actualités via proxy: ${proxyUrl}`);
+      // Utilisation d'un proxy alternatif ou d'une approche différente pour les actualités
+      // cors-anywhere.herokuapp.com peut aussi être bloqué.
+      // Une solution plus robuste serait de déployer votre propre proxy.
+      const proxyUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(feed.url);
+      console.log(`[DEBUG] Requête actualités via proxy RSS2JSON: ${proxyUrl}`);
       const res = await fetch(proxyUrl);
-      const data = await res.text(); // Utilisez .text() car cors-anywhere renvoie directement le contenu
+      const data = await res.json(); // rss2json renvoie du JSON directement
 
-      const parser = new DOMParser();
-      // Parse XML content from RSS feed
-      const xml = parser.parseFromString(data, 'text/xml'); // Utilisez 'data' ici
-      const items = xml.querySelectorAll('item');
+      if (data.status !== 'ok') {
+          console.error(`[ERROR] Erreur RSS2JSON pour ${feed.label}:`, data);
+          html += `<h3 class="news-source">${feed.label}</h3><p class="error-message">Erreur de chargement des actualités pour cette source.</p>`;
+          continue;
+      }
 
       html += `<h3 class="news-source">${feed.label}</h3>`;
 
-      items.forEach((item, index) => {
+      data.items.forEach((item, index) => {
         // Limit to 4 articles per feed to avoid overload
         if (index >= 4) return;
 
-        const title = item.querySelector('title')?.textContent ?? '';
-        const link = item.querySelector('link')?.textContent ?? '';
-        const pubDate = new Date(item.querySelector('pubDate')?.textContent ?? '').toLocaleDateString('en-US'); // Changed to en-US for date format
-        const description = item.querySelector('description')?.textContent ?? '';
-
-        // Detect image URL in description or via media tags
-        let imageUrl = '';
-        const imgMatch = description.match(/<img.*?src=["'](.*?)["']/i);
-        if (imgMatch) {
-          imageUrl = imgMatch[1];
-        } else {
-          const media = item.querySelector('media\\:content, enclosure');
-          if (media && media.getAttribute('url')) {
-            imageUrl = media.getAttribute('url');
-          } else {
-            // Placeholder image if no image is found
-            imageUrl = 'https://placehold.co/150x100/A0A0A0/FFFFFF?text=No+Image';
-          }
-        }
+        const title = item.title ?? '';
+        const link = item.link ?? '';
+        const pubDate = new Date(item.pubDate ?? '').toLocaleDateString('en-US'); 
+        const description = item.description ?? '';
+        const imageUrl = item.thumbnail || 'https://placehold.co/150x100/A0A0A0/FFFFFF?text=No+Image'; // rss2json a souvent un champ thumbnail
 
         html += `
           <div class="news-card">
@@ -315,7 +306,7 @@ async function fetchNews() {
     newsContainer.innerHTML = html || '<p>Aucune actualité trouvée.</p>';
   } catch (error) {
     console.error("Erreur de chargement des actualités:", error);
-    newsContainer.innerHTML = '<p class="error-message">Erreur de chargement des actualités. Veuillez vérifier votre connexion Internet ou réessayer plus tard.</p>';
+    newsContainer.innerHTML = '<p class="error-message">Erreur de chargement des actualités. Veuillez vérifier votre connexion Internet ou réessayer plus tard. (Problème de proxy/CORS)</p>';
   }
 }
 
@@ -368,10 +359,9 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
 
   const stockListTableBody = document.getElementById('stock-list');
   const cryptoListTableBody = document.getElementById('crypto-list');
-  const recList = document.getElementById('recommendations');
 
-  if (!stockListTableBody || !cryptoListTableBody || !recList) {
-    console.error("[ERROR] updateLists - Éléments du DOM non trouvés.");
+  if (!stockListTableBody || !cryptoListTableBody) {
+    console.error("[ERROR] updateLists - Éléments du DOM (stock-list ou crypto-list) non trouvés.");
     return;
   }
 
@@ -382,15 +372,14 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
   const currencySymbol = getCurrencySymbol(currentCurrency); // Will always be '$'
 
   // Data for Stock/Forex/Indices/Commodities table (FMP data)
-  const allNonCryptoAssets = [
-    ...(Array.isArray(stocks) ? stocks : []),
-    ...(Array.isArray(forex) ? forex : []),
-    // Assurez-vous que les indices sont bien des tableaux pour la concaténation
-    ...(Array.isArray(indices) ? indices : []), 
-    ...(Array.isArray(commodities) ? commodities : [])
-  ];
-  console.log("[DEBUG] updateLists - allNonCryptoAssets (après concaténation):", allNonCryptoAssets);
+  // Concaténer seulement si ce sont des tableaux, sinon gérer l'erreur
+  const allNonCryptoAssets = [];
+  if (Array.isArray(stocks)) allNonCryptoAssets.push(...stocks);
+  if (Array.isArray(forex)) allNonCryptoAssets.push(...forex);
+  if (Array.isArray(indices)) allNonCryptoAssets.push(...indices);
+  if (Array.isArray(commodities)) allNonCryptoAssets.push(...commodities);
 
+  console.log("[DEBUG] updateLists - allNonCryptoAssets (après concaténation):", allNonCryptoAssets);
 
   // Apply sorting if a configuration is provided
   let sortedStocks = allNonCryptoAssets;
@@ -404,12 +393,17 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
   console.log("[DEBUG] updateLists - sortedStocks (après tri):", sortedStocks);
   console.log("[DEBUG] updateLists - sortedCryptos (après tri):", sortedCryptos);
 
-  // --- NOUVEAUX LOGS DE DÉBOGAGE ---
+  // Tentative d'affichage des actions/forex/indices/commodities
   console.log("[DEBUG] updateLists - Tentative d'affichage des actions. Nombre d'éléments:", sortedStocks.length);
   if (sortedStocks.length === 0) {
-      // Afficher le message d'erreur si stocks est un objet d'erreur
-      if (stocks && stocks.error) {
-          stockListTableBody.innerHTML = `<tr><td colspan="5" class="error-message">${stocks.error}</td></tr>`;
+      let errorMessage = '';
+      if (stocks && stocks.error) errorMessage = stocks.error;
+      else if (forex && forex.error) errorMessage = forex.error;
+      else if (indices && indices.error) errorMessage = indices.error;
+      else if (commodities && commodities.error) errorMessage = commodities.error;
+
+      if (errorMessage) {
+          stockListTableBody.innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
       } else {
           stockListTableBody.innerHTML = `<tr><td colspan="5">Aucune donnée d'actions, de forex, d'indices ou de matières premières disponible.</td></tr>`;
       }
@@ -445,8 +439,8 @@ function updateLists(stocks, cryptos, forex, indices, commodities, sortConfig = 
       console.log("[DEBUG] stockListTableBody.innerHTML après ajout des lignes:", stockListTableBody.innerHTML); // Log du contenu final
   }
 
+  // Tentative d'affichage des cryptos
   console.log("[DEBUG] updateLists - Tentative d'affichage des cryptos. Nombre d'éléments:", sortedCryptos.length);
-  // Data for Crypto table (CoinGecko data - already in USD)
   if (sortedCryptos.length === 0) {
       cryptoListTableBody.innerHTML = `<tr><td colspan="5">Aucune donnée de cryptomonnaie disponible.</td></tr>`;
   } else {
@@ -550,7 +544,16 @@ function updateRecommendations(stocks, cryptos, forex, indices, commodities) {
   const recList = document.getElementById('recommendations');
   if (!recList) return;
 
-  const allAssetsForRecommendations = [
+  let recommendationHtml = '';
+
+  // Ajouter les messages d'erreur FMP en priorité
+  if (stocks && stocks.error) recommendationHtml += `<li><span class="error-message">${stocks.error}</span></li>`;
+  if (forex && forex.error) recommendationHtml += `<li><span class="error-message">${forex.error}</span></li>`;
+  if (indices && indices.error) recommendationHtml += `<li><span class="error-message">${indices.error}</span></li>`;
+  if (commodities && commodities.error) recommendationHtml += `<li><span class="error-message">${commodities.error}</span></li>`;
+
+  // Ajouter les recommandations des actifs qui ont des données valides
+  const allValidAssetsForRecommendations = [
     ...(Array.isArray(stocks) ? stocks : []),
     ...(Array.isArray(cryptos) ? cryptos : []),
     ...(Array.isArray(forex) ? forex : []),
@@ -558,26 +561,15 @@ function updateRecommendations(stocks, cryptos, forex, indices, commodities) {
     ...(Array.isArray(commodities) ? commodities : [])
   ];
 
-  // Vérifier si des erreurs FMP spécifiques sont présentes et les afficher en priorité
-  let errorMessage = '';
-  if (stocks && stocks.error) errorMessage += `<li><span class="error-message">${stocks.error}</span></li>`;
-  if (forex && forex.error) errorMessage += `<li><span class="error-message">${forex.error}</span></li>`;
-  if (indices && indices.error) errorMessage += `<li><span class="error-message">${indices.error}</span></li>`;
-  if (commodities && commodities.error) errorMessage += `<li><span class="error-message">${commodities.error}</span></li>`;
-
-  if (errorMessage) {
-      recList.innerHTML = errorMessage;
-      return;
-  }
-
-  if (allAssetsForRecommendations.length === 0) {
+  if (allValidAssetsForRecommendations.length === 0 && !recommendationHtml) {
       recList.innerHTML = '<li>Aucune recommandation disponible.</li>';
   } else {
-      recList.innerHTML = allAssetsForRecommendations.map(asset => {
+      recommendationHtml += allValidAssetsForRecommendations.map(asset => {
         const change = asset.price_change_percentage_24h ?? asset.changesPercentage ?? 0;
         const recommendation = change > 3 ? '📈 Acheter' : change < -3 ? '📉 Vendre' : '🤝 Conserver';
         return `<li>${asset.name}: ${recommendation}</li>`;
       }).join('');
+      recList.innerHTML = recommendationHtml;
   }
 }
 
@@ -614,7 +606,7 @@ function performSearch(query) {
     }
     updateIndices(allFetchedData.indices);
     updateCommodities(allFetchedData.commodities);
-    updateRecommendations(stocksToUpdate, cryptosToUpdate, forexToUpdate, indicesToUpdate, commoditiesToUpdate);
+    updateRecommendations(allFetchedData.stocks, allFetchedData.cryptos, allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities);
     return;
   }
 
@@ -652,7 +644,7 @@ function performSearch(query) {
   updateLists(filteredStocks, filteredCryptos, filteredForex, filteredIndices, filteredCommodities);
   updateIndices(allFetchedData.indices); // Passe l'objet d'erreur si applicable
   updateCommodities(allFetchedData.commodities); // Passe l'objet d'erreur si applicable
-  updateRecommendations(filteredStocks, filteredCryptos, filteredForex, filteredIndices, filteredCommodities);
+  updateRecommendations(allFetchedData.stocks, allFetchedData.cryptos, allFetchedData.forex, allFetchedData.indices, allFetchedData.commodities);
 }
 
 // Handle navigation between sections
@@ -978,10 +970,19 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(fetchData, 1500000); // 1500000 ms = 25 minutes
 
   // Définir la section 'crypto' comme active au démarrage
-  document.querySelector('.nav-link[data-section="home"]').classList.remove('active');
-  document.querySelector('.nav-link[data-section="crypto"]').classList.add('active');
-  document.getElementById('home').classList.add('hidden');
-  document.getElementById('crypto').classList.remove('hidden');
-  document.getElementById('stocks').classList.add('hidden'); // Assurez-vous que stocks est caché
-  document.getElementById('news').classList.add('hidden'); // Assurez-vous que news est caché
+  // Retirer la classe 'active' de 'home' et l'ajouter à 'crypto'
+  const homeNavLink = document.querySelector('.nav-link[data-section="home"]');
+  const cryptoNavLink = document.querySelector('.nav-link[data-section="crypto"]');
+  const homeSection = document.getElementById('home');
+  const cryptoSection = document.getElementById('crypto');
+  const stocksSection = document.getElementById('stocks');
+  const newsSection = document.getElementById('news');
+
+  if (homeNavLink) homeNavLink.classList.remove('active');
+  if (cryptoNavLink) cryptoNavLink.classList.add('active');
+
+  if (homeSection) homeSection.classList.add('hidden');
+  if (cryptoSection) cryptoSection.classList.remove('hidden');
+  if (stocksSection) stocksSection.classList.add('hidden');
+  if (newsSection) newsSection.classList.add('hidden');
 });
