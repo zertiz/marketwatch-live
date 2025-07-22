@@ -105,11 +105,18 @@ async function fetchData() {
   const commoditiesUrl = `https://financialmodelingprep.com/api/v3/quote/GCUSD?apikey=${apiKey}`; 
 
   // Display loading messages for main tables
-  document.getElementById('stock-list').innerHTML = '<tr><td colspan="5">Chargement des données boursières...</td></tr>';
-  document.getElementById('crypto-list').innerHTML = '<tr><td colspan="5">Chargement des données crypto...</td></tr>';
-  document.getElementById('indices-list').innerHTML = '<li>Chargement des indices du marché...</li>';
-  document.getElementById('commodities-list').innerHTML = '<li>Chargement des matières premières...</li>'; // Assurez-vous d'avoir cet ID dans votre HTML
-  document.getElementById('recommendations').innerHTML = '<li>Chargement des recommandations...</li>';
+  const stockListTableBody = document.getElementById('stock-list');
+  const cryptoListTableBody = document.getElementById('crypto-list');
+  const indicesList = document.getElementById('indices-list');
+  const commoditiesList = document.getElementById('commodities-list');
+  const recommendationsList = document.getElementById('recommendations');
+
+  if (stockListTableBody) stockListTableBody.innerHTML = '<tr><td colspan="5">Chargement des données boursières...</td></tr>';
+  if (cryptoListTableBody) cryptoListTableBody.innerHTML = '<tr><td colspan="5">Chargement des données crypto...</td></tr>';
+  if (indicesList) indicesList.innerHTML = '<li>Chargement des indices du marché...</li>';
+  if (commoditiesList) commoditiesList.innerHTML = '<li>Chargement des matières premières...</li>';
+  if (recommendationsList) recommendationsList.innerHTML = '<li>Chargement des recommandations...</li>';
+
 
   // Array to hold all fetch promises
   const fetchPromises = [
@@ -167,11 +174,11 @@ async function fetchData() {
         } catch (jsonError) {
           console.error(`[ERROR] Erreur de parsing JSON pour ${name} (URL: ${url}):`, jsonError);
           let errorMessage = `Erreur de données pour ${name}.`;
-          if (name === 'stocks') document.getElementById('stock-list').innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
-          if (name === 'crypto') document.getElementById('crypto-list').innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
-          if (name === 'indices') document.getElementById('indices-list').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
-          if (name === 'commodities-list') document.getElementById('commodities-list').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
-          if (name === 'recommendations') document.getElementById('recommendations').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
+          if (name === 'stocks' && stockListTableBody) stockListTableBody.innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
+          if (name === 'crypto' && cryptoListTableBody) cryptoListTableBody.innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
+          if (name === 'indices' && indicesList) indicesList.innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
+          if (name === 'commodities-list' && commoditiesList) commoditiesList.innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
+          if (name === 'recommendations' && recommendationsList) recommendationsList.innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
         }
       } else {
         console.error(`[ERROR] Échec de la récupération des données pour ${name} (URL: ${url}):`, result.reason);
@@ -193,11 +200,11 @@ async function fetchData() {
         else if (name === 'commodities') tempFetchedData.commodities = { error: errorMessage };
         
         // Afficher un message d'erreur dans l'UI si l'élément existe
-        if (name === 'stocks' && document.getElementById('stock-list')) document.getElementById('stock-list').innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
-        if (name === 'crypto' && document.getElementById('crypto-list')) document.getElementById('crypto-list').innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
-        if (name === 'indices' && document.getElementById('indices-list')) document.getElementById('indices-list').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
-        if (name === 'commodities' && document.getElementById('commodities-list')) document.getElementById('commodities-list').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
-        if (name === 'recommendations' && document.getElementById('recommendations')) document.getElementById('recommendations').innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
+        if (name === 'stocks' && stockListTableBody) stockListTableBody.innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
+        if (name === 'crypto' && cryptoListTableBody) cryptoListTableBody.innerHTML = `<tr><td colspan="5" class="error-message">${errorMessage}</td></tr>`;
+        if (name === 'indices' && indicesList) indicesList.innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
+        if (name === 'commodities' && commoditiesList) commoditiesList.innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
+        if (name === 'recommendations' && recommendationsList) recommendationsList.innerHTML = `<li><span class="error-message">${errorMessage}</span></li>`;
       }
     }
 
@@ -215,12 +222,13 @@ async function fetchData() {
 
 
     // Mettre à jour les listes principales
-    const currentActiveSectionId = document.querySelector('.nav-link.active')?.dataset.section || 'home';
+    const currentActiveSectionId = document.querySelector('.nav-link.active')?.dataset.section || 'crypto'; // Default to crypto
     if (currentActiveSectionId === 'stocks') {
         updateLists(stocksToUpdate, [], forexToUpdate, indicesToUpdate, commoditiesToUpdate);
     } else if (currentActiveSectionId === 'crypto') {
         updateLists([], cryptosToUpdate, [], [], []);
     } else { // 'home' or 'news' or if no section is active
+        // If home or news is active, we still want to update all relevant tables with their specific data
         updateLists(stocksToUpdate, cryptosToUpdate, forexToUpdate, indicesToUpdate, commoditiesToUpdate);
     }
     
@@ -232,16 +240,20 @@ async function fetchData() {
   } catch (error) {
     console.error("Erreur générale lors du chargement des données:", error);
     const genericErrorMessage = "Une erreur inattendue est survenue lors du chargement des données.";
-    document.getElementById('stock-list').innerHTML = `<tr><td colspan="5" class="error-message">${genericErrorMessage}</td></tr>`;
-    document.getElementById('crypto-list').innerHTML = `<tr><td colspan="5" class="error-message">${genericErrorMessage}</td></tr>`;
-    document.getElementById('indices-list').innerHTML = `<li><span class="error-message">${genericErrorMessage}</span></li>`;
-    document.getElementById('commodities-list').innerHTML = `<li><span class="error-message">${genericErrorMessage}</span></li>`;
-    document.getElementById('recommendations').innerHTML = `<li><span class="error-message">${genericErrorMessage}</span></li>`;
+    if (stockListTableBody) stockListTableBody.innerHTML = `<tr><td colspan="5" class="error-message">${genericErrorMessage}</td></tr>`;
+    if (cryptoListTableBody) cryptoListTableBody.innerHTML = `<tr><td colspan="5" class="error-message">${genericErrorMessage}</td></tr>`;
+    if (indicesList) indicesList.innerHTML = `<li><span class="error-message">${genericErrorMessage}</span></li>`;
+    if (commoditiesList) commoditiesList.innerHTML = `<li><span class="error-message">${genericErrorMessage}</span></li>`;
+    if (recommendationsList) recommendationsList.innerHTML = `<li><span class="error-message">${genericErrorMessage}</span></li>`;
   }
 }
 
 async function fetchNews() {
   const newsContainer = document.getElementById('news-articles');
+  if (!newsContainer) {
+    console.error("[ERROR] fetchNews - Élément 'news-articles' non trouvé.");
+    return;
+  }
   newsContainer.innerHTML = '<p>Chargement des actualités...</p>';
 
   const feeds = [
@@ -263,10 +275,7 @@ async function fetchNews() {
     let html = '';
 
     for (const feed of feeds) {
-      // NOUVEAU PROXY CORS
       // Utilisation d'un proxy alternatif ou d'une approche différente pour les actualités
-      // cors-anywhere.herokuapp.com peut aussi être bloqué.
-      // Une solution plus robuste serait de déployer votre propre proxy.
       const proxyUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(feed.url);
       console.log(`[DEBUG] Requête actualités via proxy RSS2JSON: ${proxyUrl}`);
       const res = await fetch(proxyUrl);
@@ -577,15 +586,19 @@ function updateRecommendations(stocks, cryptos, forex, indices, commodities) {
 
 // Function to filter and display search results
 function performSearch(query) {
+  console.log(`[DEBUG] performSearch called with query: "${query}"`);
   const lowerCaseQuery = query.toLowerCase();
 
   // If query is empty, revert to the last active section view
   if (query === '') {
+    console.log("[DEBUG] Search query is empty. Reverting to last active section:", lastActiveSection);
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-    document.querySelector(`.nav-link[data-section="${lastActiveSection}"]`).classList.add('active');
+    const lastActiveNavLink = document.querySelector(`.nav-link[data-section="${lastActiveSection}"]`);
+    if (lastActiveNavLink) lastActiveNavLink.classList.add('active');
 
     document.querySelectorAll('.content-section').forEach(sec => sec.classList.add('hidden'));
-    document.getElementById(lastActiveSection).classList.remove('hidden');
+    const targetSection = document.getElementById(lastActiveSection);
+    if (targetSection) targetSection.classList.remove('hidden');
 
     // Assurez-vous que les données passées sont des tableaux ou des objets d'erreur
     const stocksToUpdate = Array.isArray(allFetchedData.stocks) ? allFetchedData.stocks : [];
@@ -601,9 +614,10 @@ function performSearch(query) {
     } else if (lastActiveSection === 'news') {
       fetchNews();
     } else if (lastActiveSection === 'home') {
-        document.getElementById('stocks').classList.add('hidden');
-        document.getElementById('crypto').classList.add('hidden');
-        document.getElementById('news').classList.add('hidden');
+        // Home section is special, it doesn't display tables directly
+        document.getElementById('stocks')?.classList.add('hidden');
+        document.getElementById('crypto')?.classList.add('hidden');
+        document.getElementById('news')?.classList.add('hidden');
     }
     updateIndices(allFetchedData.indices);
     updateCommodities(allFetchedData.commodities);
@@ -614,6 +628,7 @@ function performSearch(query) {
   const currentActiveNavLink = document.querySelector('.nav-link.active');
   if (currentActiveNavLink) {
     lastActiveSection = currentActiveNavLink.dataset.section;
+    console.log("[DEBUG] Storing last active section for search:", lastActiveSection);
   }
 
   // Filter only array data, ignore error objects
@@ -633,14 +648,17 @@ function performSearch(query) {
     asset.name.toLowerCase().includes(lowerCaseQuery) || asset.symbol.toLowerCase().includes(lowerCaseQuery)
   ) : [];
 
+  // Always show stocks section for search results
   document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-  document.querySelector('.nav-link[data-section="stocks"]').classList.add('active');
+  const stocksNavLink = document.querySelector('.nav-link[data-section="stocks"]');
+  if (stocksNavLink) stocksNavLink.classList.add('active');
 
   document.querySelectorAll('.content-section').forEach(sec => sec.classList.add('hidden'));
-  document.getElementById('stocks').classList.remove('hidden');
-  document.getElementById('crypto').classList.add('hidden');
-  document.getElementById('news').classList.add('hidden');
-  document.getElementById('home').classList.add('hidden');
+  const stocksSection = document.getElementById('stocks');
+  if (stocksSection) stocksSection.classList.remove('hidden');
+  document.getElementById('crypto')?.classList.add('hidden');
+  document.getElementById('news')?.classList.add('hidden');
+  document.getElementById('home')?.classList.add('hidden');
 
   updateLists(filteredStocks, filteredCryptos, filteredForex, filteredIndices, filteredCommodities);
   updateIndices(allFetchedData.indices); // Passe l'objet d'erreur si applicable
@@ -650,19 +668,35 @@ function performSearch(query) {
 
 // Handle navigation between sections
 function handleNavigation() {
+  console.log("[DEBUG] handleNavigation function called.");
   document.querySelectorAll('.nav-link').forEach(link => {
+    console.log(`[DEBUG] Attaching click listener to nav-link: ${link.dataset.section}`);
     link.addEventListener('click', (e) => {
       e.preventDefault();
       const section = link.dataset.section;
+      console.log(`[DEBUG] Nav-link clicked: ${section}`);
 
       lastActiveSection = section;
+      console.log("[DEBUG] lastActiveSection set to:", lastActiveSection);
 
-      document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+      document.querySelectorAll('.nav-link').forEach(l => {
+        l.classList.remove('active');
+        console.log(`  Removed active from: ${l.dataset.section}`);
+      });
       link.classList.add('active');
+      console.log(`  Added active to: ${link.dataset.section}`);
 
-      document.querySelectorAll('.content-section').forEach(sec => sec.classList.add('hidden'));
+      document.querySelectorAll('.content-section').forEach(sec => {
+        sec.classList.add('hidden');
+        console.log(`  Hid section: ${sec.id}`);
+      });
       const activeSection = document.getElementById(section);
-      if (activeSection) activeSection.classList.remove('hidden');
+      if (activeSection) {
+        activeSection.classList.remove('hidden');
+        console.log(`  Showed section: ${activeSection.id}`);
+      } else {
+        console.error(`[ERROR] Section element not found for: ${section}`);
+      }
 
       // Assurez-vous que les données passées sont des tableaux ou des objets d'erreur
       const stocksToUpdate = Array.isArray(allFetchedData.stocks) ? allFetchedData.stocks : [];
@@ -678,9 +712,10 @@ function handleNavigation() {
       } else if (section === 'news') {
         fetchNews();
       } else if (section === 'home') {
-        document.getElementById('stocks').classList.add('hidden');
-        document.getElementById('crypto').classList.add('hidden');
-        document.getElementById('news').classList.add('hidden');
+        // Home section does not display tables directly, ensure others are hidden
+        document.getElementById('stocks')?.classList.add('hidden');
+        document.getElementById('crypto')?.classList.add('hidden');
+        document.getElementById('news')?.classList.add('hidden');
       }
       document.querySelector('.search-bar').value = '';
     });
@@ -691,11 +726,16 @@ function handleNavigation() {
 window.showChartModal = async function(symbol, type, name) { // Rendu global, 'period' retiré
   const modal = document.getElementById('chartModal');
   const chartTitle = document.getElementById('chartTitle');
-  const chartLoading = document.getElementById('chartLoading');
+  const chartLoading = document.getElementById('chartLoading'); // Assurez-vous d'avoir un élément avec cet ID
   const chartError = document.getElementById('chartError');
   const chartCanvas = document.getElementById('historicalChart');
-  const ctx = chartCanvas.getContext('2d');
+  const ctx = chartCanvas?.getContext('2d'); // Utiliser optional chaining
   const chartPeriodSelector = document.getElementById('chartPeriodSelector'); // Référence au sélecteur de période
+
+  if (!modal || !chartTitle || !chartError || !chartCanvas || !ctx) {
+    console.error("[ERROR] showChartModal - Un ou plusieurs éléments du DOM du modal sont manquants.");
+    return;
+  }
 
   // Store current asset details
   currentChartSymbol = symbol;
@@ -703,9 +743,9 @@ window.showChartModal = async function(symbol, type, name) { // Rendu global, 'p
   currentChartName = name;
 
   chartTitle.textContent = `Évolution du prix pour ${name} (USD)`;
-  if (chartLoading) chartLoading.classList.remove('hidden');
-  if (chartError) chartError.classList.add('hidden');
-  if (modal) modal.classList.remove('hidden'); // Assurez-vous que le modal est visible
+  // chartLoading.classList.remove('hidden'); // Uncomment if you add a loading spinner
+  chartError.classList.add('hidden');
+  modal.classList.remove('hidden'); // Assurez-vous que le modal est visible
 
   // Masquer le sélecteur de période car nous n'en avons plus besoin
   if (chartPeriodSelector) {
@@ -724,17 +764,17 @@ window.showChartModal = async function(symbol, type, name) { // Rendu global, 'p
 
     if (historicalData && historicalData.length > 0) {
       renderChart(historicalData, name, ctx, currentCurrency);
-      if (chartLoading) chartLoading.classList.add('hidden');
+      // if (chartLoading) chartLoading.classList.add('hidden'); // Uncomment if you add a loading spinner
     } else {
-      if (chartLoading) chartLoading.classList.add('hidden');
-      if (chartError) chartError.classList.remove('hidden');
-      if (chartError) chartError.textContent = "Aucune donnée historique disponible pour cet actif ou erreur API.";
+      // if (chartLoading) chartLoading.classList.add('hidden'); // Uncomment if you add a loading spinner
+      chartError.classList.remove('hidden');
+      chartError.textContent = "Aucune donnée historique disponible pour cet actif ou erreur API.";
     }
   } catch (error) {
     console.error("Erreur de chargement des données historiques:", error);
-    if (chartLoading) chartLoading.classList.add('hidden');
-    if (chartError) chartError.classList.remove('hidden');
-    if (chartError) chartError.textContent = "Erreur lors du chargement des données historiques. Veuillez réessayer plus tard.";
+    // if (chartLoading) chartLoading.classList.add('hidden'); // Uncomment if you add a loading spinner
+    chartError.classList.remove('hidden');
+    chartError.textContent = "Erreur lors du chargement des données historiques. Veuillez réessayer plus tard.";
   }
 }
 
@@ -891,48 +931,59 @@ function renderChart(historicalData, assetName, ctx, currencyCode) {
 
 // --- Initialisation au chargement du DOM ---
 document.addEventListener('DOMContentLoaded', () => {
-  // initializeFirebase(); // Initialisation Firebase retirée
+  console.log("[INIT] DOMContentLoaded event fired.");
+  
   handleNavigation(); // Initialise la navigation et la visibilité des sections
 
+  // Masquer toutes les sections de contenu au départ
+  document.querySelectorAll('.content-section').forEach(sec => {
+    sec.classList.add('hidden');
+    console.log(`[INIT] Section cachée: ${sec.id}, hidden: ${sec.classList.contains('hidden')}`);
+  });
+
   // Définir la section 'crypto' comme active au démarrage
-  const homeNavLink = document.querySelector('.nav-link[data-section="home"]');
   const cryptoNavLink = document.querySelector('.nav-link[data-section="crypto"]');
-  const homeSection = document.getElementById('home');
   const cryptoSection = document.getElementById('crypto');
-  const stocksSection = document.getElementById('stocks');
-  const newsSection = document.getElementById('news');
+  
+  // Retirer la classe 'active' de tous les liens de navigation
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.classList.remove('active');
+    console.log(`[INIT] Removed 'active' from nav-link: ${link.dataset.section}`);
+  });
 
-  console.log("[INIT] DOMContentLoaded - Avant manipulation des classes.");
-  console.log("  homeNavLink:", homeNavLink ? "found" : "not found", "active:", homeNavLink?.classList.contains('active'));
-  console.log("  cryptoNavLink:", cryptoNavLink ? "found" : "not found", "active:", cryptoNavLink?.classList.contains('active'));
-  console.log("  homeSection:", homeSection ? "found" : "not found", "hidden:", homeSection?.classList.contains('hidden'));
-  console.log("  cryptoSection:", cryptoSection ? "found" : "not found", "hidden:", cryptoSection?.classList.contains('hidden'));
-  console.log("  stocksSection:", stocksSection ? "found" : "not found", "hidden:", stocksSection?.classList.contains('hidden'));
-  console.log("  newsSection:", newsSection ? "found" : "not found", "hidden:", newsSection?.classList.contains('hidden'));
+  // Ajouter la classe 'active' au lien de navigation 'crypto'
+  if (cryptoNavLink) {
+    cryptoNavLink.classList.add('active');
+    console.log(`[INIT] Added 'active' to crypto nav link. Active: ${cryptoNavLink.classList.contains('active')}`);
+  } else {
+    console.error("[INIT] Crypto nav link element not found!");
+  }
 
+  // Afficher la section 'crypto'
+  if (cryptoSection) {
+    cryptoSection.classList.remove('hidden');
+    console.log(`[INIT] Showing crypto section. Hidden: ${cryptoSection.classList.contains('hidden')}`);
+  } else {
+    console.error("[INIT] Crypto section element not found!");
+  }
 
-  if (homeNavLink) homeNavLink.classList.remove('active');
-  if (cryptoNavLink) cryptoNavLink.classList.add('active');
-
-  if (homeSection) homeSection.classList.add('hidden');
-  if (stocksSection) stocksSection.classList.add('hidden');
-  if (newsSection) newsSection.classList.add('hidden');
-  if (cryptoSection) cryptoSection.classList.remove('hidden'); // S'assurer que crypto est visible
-
-  console.log("[INIT] DOMContentLoaded - Après manipulation des classes.");
-  console.log("  homeNavLink:", homeNavLink ? "found" : "not found", "active:", cryptoNavLink?.classList.contains('active')); // Correction: vérifier cryptoNavLink
-  console.log("  cryptoNavLink:", cryptoNavLink ? "found" : "not found", "active:", cryptoNavLink?.classList.contains('active'));
-  console.log("  homeSection:", homeSection ? "found" : "not found", "hidden:", homeSection?.classList.contains('hidden'));
-  console.log("  cryptoSection:", cryptoSection ? "found" : "not found", "hidden:", cryptoSection?.classList.contains('hidden'));
-  console.log("  stocksSection:", stocksSection ? "found" : "not found", "hidden:", stocksSection?.classList.contains('hidden'));
-  console.log("  newsSection:", newsSection ? "found" : "not found", "hidden:", newsSection?.classList.contains('hidden'));
+  // Définir lastActiveSection à 'crypto' pour la fonctionnalité de recherche
+  lastActiveSection = 'crypto';
+  console.log("[INIT] lastActiveSection set to:", lastActiveSection);
 
   fetchData(); // Première récupération des données
 
   // Gestion du bouton d'authentification (désactivé, sans Firebase)
-  document.getElementById('authButton').addEventListener('click', () => {
-    console.log("Le bouton de connexion a été cliqué. La fonctionnalité de connexion est actuellement désactivée.");
-  });
+  const authButton = document.getElementById('authButton');
+  if (authButton) {
+    authButton.addEventListener('click', () => {
+      console.log("Le bouton de connexion a été cliqué. La fonctionnalité de connexion est actuellement désactivée.");
+    });
+    console.log("[INIT] Auth button listener attached.");
+  } else {
+    console.warn("[INIT] Auth button element not found.");
+  }
+
 
   // Ajout de l'écouteur d'événement pour la barre de recherche
   const searchBar = document.querySelector('.search-bar');
@@ -940,12 +991,18 @@ document.addEventListener('DOMContentLoaded', () => {
     searchBar.addEventListener('input', (e) => {
       performSearch(e.target.value);
     });
+    console.log("[INIT] Search bar listener attached.");
+  } else {
+    console.warn("[INIT] Search bar element not found.");
   }
 
   // Écouteur pour le bouton de fermeture du modal
   const closeButton = document.querySelector('.close-button');
   if (closeButton) {
     closeButton.addEventListener('click', closeChartModal);
+    console.log("[INIT] Close button listener attached.");
+  } else {
+    console.warn("[INIT] Close button element not found.");
   }
 
   // Fermer le modal si l'on clique en dehors du contenu (sur l'overlay)
@@ -956,51 +1013,59 @@ document.addEventListener('DOMContentLoaded', () => {
         closeChartModal();
       }
     });
+    console.log("[INIT] Chart modal overlay listener attached.");
+  } else {
+    console.warn("[INIT] Chart modal element not found.");
   }
 
   // Gestion du tri des tableaux
   document.querySelectorAll('table thead th[data-sort-key]').forEach(header => {
-    header.addEventListener('click', () => {
-      const tableId = header.closest('table').querySelector('tbody').id;
-      const sortKey = header.dataset.sortKey;
-      let sortDirection = header.dataset.sortDirection;
+    if (header) { // Check if header exists
+      header.addEventListener('click', () => {
+        console.log(`[DEBUG] Table header clicked: ${header.dataset.sortKey}`);
+        const tableId = header.closest('table').querySelector('tbody').id;
+        const sortKey = header.dataset.sortKey;
+        let sortDirection = header.dataset.sortDirection;
 
-      // Déterminer la nouvelle direction de tri
-      if (sortDirection === 'asc') {
-        sortDirection = 'desc';
-      } else if (sortDirection === 'desc') {
-        sortDirection = 'asc'; // Revenir à asc si déjà desc
-      } else {
-        sortDirection = 'asc'; // Par défaut à asc
-      }
+        // Déterminer la nouvelle direction de tri
+        if (sortDirection === 'asc') {
+          sortDirection = 'desc';
+        } else if (sortDirection === 'desc') {
+          sortDirection = 'asc'; // Revenir à asc si déjà desc
+        } else {
+          sortDirection = 'asc'; // Par défaut à asc
+        }
 
-      // Réinitialiser les flèches de tri pour tous les en-têtes du même tableau
-      header.closest('thead').querySelectorAll('th[data-sort-key]').forEach(th => {
-        if (th !== header) {
-          th.dataset.sortDirection = 'none'; // Masquer la flèche
+        // Réinitialiser les flèches de tri pour tous les en-têtes du même tableau
+        header.closest('thead').querySelectorAll('th[data-sort-key]').forEach(th => {
+          if (th !== header) {
+            th.dataset.sortDirection = 'none'; // Masquer la flèche
+          }
+        });
+
+        // Mettre à jour la direction pour l'en-tête cliqué
+        header.dataset.sortDirection = sortDirection;
+
+        // Assurez-vous que les données passées sont des tableaux ou des objets d'erreur
+        const stocksToUpdate = Array.isArray(allFetchedData.stocks) ? allFetchedData.stocks : [];
+        const cryptosToUpdate = Array.isArray(allFetchedData.cryptos) ? allFetchedData.cryptos : [];
+        const forexToUpdate = Array.isArray(allFetchedData.forex) ? allFetchedData.forex : [];
+        const indicesToUpdate = Array.isArray(allFetchedData.indices) ? allFetchedData.indices : [];
+        const commoditiesToUpdate = Array.isArray(allFetchedData.commodities) ? allFetchedData.commodities : [];
+
+        // Appliquer le tri et mettre à jour la liste
+        if (tableId === 'stock-list') {
+          updateLists(stocksToUpdate, [], forexToUpdate, indicesToUpdate, commoditiesToUpdate, { tableId: tableId, key: sortKey, direction: sortDirection });
+        } else if (tableId === 'crypto-list') {
+          updateLists([], cryptosToUpdate, [], [], [], { tableId: tableId, key: sortKey, direction: sortDirection });
         }
       });
-
-      // Mettre à jour la direction pour l'en-tête cliqué
-      header.dataset.sortDirection = sortDirection;
-
-      // Assurez-vous que les données passées sont des tableaux ou des objets d'erreur
-      const stocksToUpdate = Array.isArray(allFetchedData.stocks) ? allFetchedData.stocks : [];
-      const cryptosToUpdate = Array.isArray(allFetchedData.cryptos) ? allFetchedData.cryptos : [];
-      const forexToUpdate = Array.isArray(allFetchedData.forex) ? allFetchedData.forex : [];
-      const indicesToUpdate = Array.isArray(allFetchedData.indices) ? allFetchedData.indices : [];
-      const commoditiesToUpdate = Array.isArray(allFetchedData.commodities) ? allFetchedData.commodities : [];
-
-      // Appliquer le tri et mettre à jour la liste
-      if (tableId === 'stock-list') {
-        updateLists(stocksToUpdate, [], forexToUpdate, indicesToUpdate, commoditiesToUpdate, { tableId: tableId, key: sortKey, direction: sortDirection });
-      } else if (tableId === 'crypto-list') {
-        updateLists([], cryptosToUpdate, [], [], [], { tableId: tableId, key: sortKey, direction: sortDirection });
-      }
-    });
+      console.log(`[INIT] Sort header listener attached for: ${header.dataset.sortKey}`);
+    }
   });
 
 
   // Interval de rafraîchissement des données (environ toutes les 25 minutes)
   setInterval(fetchData, 1500000); // 1500000 ms = 25 minutes
+  console.log("[INIT] Data refresh interval set.");
 });
