@@ -95,7 +95,7 @@ async function initializeFirebase() {
 
 async function fetchData() {
   console.log("[DEBUG] fetchData called.");
-  const apiKey = '8C6eqw9VAcDUFxs1UERgRgY64pNe9xYd'; // Your FMP API key
+  const apiKey = 'GKTmxyXWbKpCSjj67xYW9xf7pPK86ALi'; // Your FMP API key
   const cryptoUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana,cardano,ripple,dogecoin,tron,polkadot,polygon,chainlink';
   
   // FMP URLs - ALL ENABLED as requested
@@ -815,7 +815,7 @@ function closeChartModal() {
 // Function to fetch historical data (period fixed to 1 year)
 async function fetchHistoricalData(symbol, type) { // 'period' parameter removed
   console.log(`[DEBUG] fetchHistoricalData called for symbol: ${symbol}, type: ${type}`);
-  const apiKey = '8C6eqw9VAcDUFxs1UERgRgY64pNe9xYd'; // Your FMP API key
+  const apiKey = 'GKTmxyXWbKpCSjj67xYW9xf7pPK86ALi'; // Your FMP API key
   let url = '';
   let dataPath = '';
 
